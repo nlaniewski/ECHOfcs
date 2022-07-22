@@ -1,0 +1,16 @@
+Package: ECHOfcs
+Type: Package
+Title: ECHO Mass Cytometry Utilities/Workflow
+Version: 0.1.0
+Author: Nathan Laniewski
+Maintainer: Nathan Laniewski <nathan_laniewski@urmc.rochester.edu>
+Description: Contains ECHO-specific utility/workflow functions for .fcs files.
+License:GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    flowCore,
+    stats,
+    stringr,
+    parallel
+RoxygenNote: 7.1.2
