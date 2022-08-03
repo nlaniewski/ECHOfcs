@@ -13,10 +13,12 @@ fcs.markers <- function(fcs.path,name.split="_",split.position=2,selected.marker
   tmp.header <- flowCore::read.FCSheader(fcs.path)[[1]]
   ##
   p.names <- sapply(c("N","S"),function(i){
-    p <- tmp.header[grep(paste0("P[0-9]+",i), names(tmp.header), value = T)];p <- p[order(as.numeric(stringr::str_extract(names(p),"[0-9]+")))]
+    p <- tmp.header[grep(paste0("P[0-9]+",i), names(tmp.header), value = T)]
+    p <- p[order(as.numeric(stringr::str_extract(names(p),"[0-9]+")))]
   })
   ##
-  ps.selected <- sapply(strsplit(p.names$S,name.split),'[',split.position);ps.selected <- ps.selected[!is.na(ps.selected)]
+  ps.selected <- sapply(strsplit(p.names$S,name.split),'[',split.position)
+  ps.selected <- ps.selected[!is.na(ps.selected)]
   ##
   if(!is.null(selected.markers)){
     selected.names <- sub("S","N",names(ps.selected)[which(ps.selected %in% selected.markers)])
@@ -36,8 +38,8 @@ fcs.markers <- function(fcs.path,name.split="_",split.position=2,selected.marker
 #' @export
 #'
 #'
-fcs.markers.check <- function(fcs.paths,markers.vec){
-  fcs.markers.list <- unique(lapply(fcs.paths,fcs.markers))
+fcs.markers.check <- function(fcs.paths,markers.vec,...){
+  fcs.markers.list <- unique(lapply(fcs.paths,fcs.markers,...))
   if(Reduce(all,lapply(fcs.markers.list,function(i)all(markers.vec %in% i)))){
     message("All named markers found in .fcs files")
     return(TRUE)
@@ -172,3 +174,4 @@ get.metal.markers <- function(fcs.list){
     return(ps.names)
   }
 }
+#
