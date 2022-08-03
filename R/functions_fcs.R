@@ -85,20 +85,43 @@ fcs.markers.check <- function(fcs.paths,markers.vec,...){
 #' @param fcs.path .fcs file path
 #' @param selected.markers character vector of marker names to keep
 #' @param include.scatter logical; for fluor/flow based assays, include light-scatter channels
+#' @param trim.time logical; for fluor/flow based assays, trim time from end
+#' @param trim.scatter logical; for fluor/flow based assays, trim high light-scatter values
+#' @param comp logical; for fluor/flow based assays, compensate; sample-specific
+#' @param comp.mat logical; for fluor/flow based assays, compensate using a provided (modified) matrix
 #'
-#' @return a flowFrame; no transformation applied; no truncation
+#' @return a flowFrame; no transformation applied; no truncation; pre-processed according to arguments
 #' @export
 #'
-read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=F){
-  selected.markers.names <- fcs.markers(fcs.path, selected.markers=selected.markers)
-  if(include.scatter){
-    selected.markers.names <- c(selected.markers.names,
-                                paste(rep(c('FSC','SSC'),each=3),c('A','H','W'),sep = "-")
-    )
+read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=T,trim.time=T,trim.scatter=T,comp=T,comp.mat=NULL){
+  selected.markers.names <- fcs.markers.agnostic(fcs.path,selected.markers=selected.markers)
+  if(grepl("LASER",flowCore::read.FCSheader(fcs.path))){
+    if(include.scatter){
+      selected.markers.names <- c(selected.markers.names,
+                                  paste(rep(c('FSC','SSC'),each=3),c('A','H','W'),sep = "-")
+      )
+    }
+    fcs <- flowCore::read.FCS(fcs.path,transformation=F,truncate_max_range=F)
+    if(trim.time){
+      fcs@exprs <- fcs@exprs[fcs@exprs[,'Time']<trim.time.value(fcs@exprs[,'Time']),]
+    }
+    if(trim.scatter){
+      scatter.trim.list <- sapply(paste(rep(c('FSC','SSC'),each=3),c('A','H','W'),sep = "-"),function(scatter){
+        which(fcs@exprs[,scatter]>250000)
+      })
+      fcs@exprs <- fcs@exprs[-Reduce(union,scatter.trim.list),]
+    }
+    if(comp&is.null(comp.mat)){
+      fcs <- flowCore::compensate(fcs,fcs@description$SPILL)
+    }else if(comp&!is.null(comp.mat)){
+      fcs <- flowCore::compensate(fcs,comp.mat)
+    }
+    fcs <- fcs[,flowCore::colnames(fcs) %in% selected.markers.names]
+  }else{
+    fcs <- flowCore::read.FCS(fcs.path,
+                              column.pattern = paste0(selected.markers.names,collapse = "|"),
+                              transformation = F, truncate_max_range = F)
   }
-  fcs <- flowCore::read.FCS(fcs.path,
-                            column.pattern = paste0(selected.markers.names,collapse = "|"),
-                            transformation = F, truncate_max_range = F)
   ##
   return(fcs)
 }
@@ -219,7 +242,6 @@ get.metal.markers <- function(fcs.list){
 #' @param plot plot/visualize trim value; histogram
 #'
 #' @return a numeric value
-#' @export
 #'
 trim.time.value <- function(time.vec,plot=F){
   #time histogram
