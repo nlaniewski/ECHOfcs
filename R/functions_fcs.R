@@ -33,6 +33,7 @@ fcs.markers <- function(fcs.path,name.split="_",split.position=2,selected.marker
 #'
 #' @param fcs.paths .fcs file paths
 #' @param markers.vec a character vector of marker names
+#' @param ... additional arguments to pass to fcs.markers
 #'
 #' @return logical TRUE or FALSE; message or stop
 #' @export
@@ -101,7 +102,7 @@ read.fcs.selected.markers.parallel <- function(fcs.paths,selected.markers){
 #' @export
 #'
 mdat.frame.from.paths.echo <- function(fcs.paths,name.split="_"){
-  if(class(fcs.paths)!="character"&!is.vector(fcs.paths)){
+  if(!is.character(fcs.paths)&!is.vector(fcs.paths)){
     stop("fcs.paths needs to be a character vector of .fcs file paths")
   }
   split.names.vec <- lapply(fcs.paths, function(i){
@@ -165,7 +166,7 @@ get.metal.markers <- function(fcs.list){
   pn.names <- unique(lapply(fcs.list,flowCore::colnames));if(length(pn.names)==1) pn.names <- pn.names[[1]]
   ps.names <- unique(lapply(fcs.list,flowCore::markernames));if(length(ps.names)==1) ps.names <- ps.names[[1]]
   ##
-  if(class(ps.names)=="list"){
+  if(is.list(ps.names)){
     isometal <- unique(lapply(ps.names,function(i){
       tmp.string <- sapply(strsplit(i,"_"),'[[',1)
       tmp.string <- paste0(stringr::str_extract(tmp.string,"[0-9]{3}"),stringr::str_extract(tmp.string,"[A-Z][a-z]"))
@@ -176,7 +177,7 @@ get.metal.markers <- function(fcs.list){
       ps.names <- ps.names[unlist(lapply(ps.names,function(i) all(grepl(paste0(isometal,collapse = "|"),i))))][[1]]
     }
   }
-  if(class(ps.names)=="character"&all(pn.names %in% names(ps.names))){
+  if(is.character(ps.names)&all(pn.names %in% names(ps.names))){
     return(ps.names)
   }
 }
@@ -184,14 +185,14 @@ get.metal.markers <- function(fcs.list){
 #' Generate a trim value for 'Time'
 #'
 #' @param time.vec numeric time vector
-#' @param plot plot/visualize trim values
+#' @param plot plot/visualize trim value; histogram
 #'
 #' @return a numeric value
 #' @export
 #'
-time.trim <- function(time.vec,plot=F){
+trim.time.value <- function(time.vec,plot=F){
   #time histogram
-  h <- hist(time.vec,breaks=200,plot=F)
+  h <- graphics::hist(time.vec,breaks=200,plot=F)
   #low count bin cut; usually at end of acquisition
   cut.bins <- mean(h$counts)*.2
   if(all(!h$counts<cut.bins)){
@@ -210,8 +211,8 @@ time.trim <- function(time.vec,plot=F){
   ##
   if(plot){
     plot(h)
-    abline(h=trimmed.counts.mean,col="blue")
-    abline(v=time.break,col="red")
+    graphics::abline(h=trimmed.counts.mean,col="blue")
+    graphics::abline(v=time.break,col="red")
   }
   else{
     return(time.break)

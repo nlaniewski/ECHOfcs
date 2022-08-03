@@ -4,12 +4,14 @@
 \alias{read.fcs.selected.markers}
 \title{Read .fcs file; keep only selected markers}
 \usage{
-read.fcs.selected.markers(fcs.path, selected.markers)
+read.fcs.selected.markers(fcs.path, selected.markers, include.scatter = F)
 }
 \arguments{
 \item{fcs.path}{.fcs file path}
 
 \item{selected.markers}{character vector of marker names to keep}
+
+\item{include.scatter}{logical; for fluor/flow based assays, include light-scatter channels}
 }
 \value{
 a flowFrame; no transformation applied; no truncation

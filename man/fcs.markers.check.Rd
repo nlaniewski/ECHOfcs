@@ -4,12 +4,14 @@
 \alias{fcs.markers.check}
 \title{Check if markers exist in all .fcs files}
 \usage{
-fcs.markers.check(fcs.paths, markers.vec)
+fcs.markers.check(fcs.paths, markers.vec, ...)
 }
 \arguments{
 \item{fcs.paths}{.fcs file paths}
 
 \item{markers.vec}{a character vector of marker names}
+
+\item{...}{additional arguments to pass to fcs.markers}
 }
 \value{
 logical TRUE or FALSE; message or stop
