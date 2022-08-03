@@ -29,6 +29,37 @@ fcs.markers <- function(fcs.path,name.split="_",split.position=2,selected.marker
   }
 }
 
+#' Get .fcs marker names from .fcs file path(s); attempts to be agnostic to naming convention
+#'
+#' @param fcs.path .fcs file path
+#' @param selected.markers optional character vector of selected marker names; for getting '$P##N' column names
+#'
+#' @return character vector of marker names; or the column names of selected.markers
+#' @export
+#'
+fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL){
+  header <- flowCore::read.FCSheader(fcs.path)[[1]]
+  p <- sapply(c("N","S"),function(i){
+    p <- header[grep(paste0("P[0-9]+",i),names(header),value = T)]
+    p <- p[order(as.numeric(stringr::str_extract(names(p),"[0-9]+")))]
+  })
+
+  common.split.counts <- sapply(c(".","_","-"," "),function(split) sum(grepl(split,p$S,fixed = T)))
+  most.likely.split <- names(common.split.counts)[which.max(common.split.counts)]
+
+  if(!is.null(selected.markers)){
+    ps.selected <- names(grep(paste0(most.likely.split,paste0(selected.markers,"$"),collapse = "|"),p$S,value = T))
+    if(length(ps.selected)==0){
+      ps.selected <- names(grep(paste(paste0(selected.markers,most.likely.split),collapse = "|"),p$S,value = T))
+
+    }
+    pn.selected <- p$N[names(p$N) %in% sub("S","N",ps.selected)]
+    return(pn.selected)
+  }else{
+    return(p$S)
+  }
+}
+
 #' Check if markers exist in all .fcs files
 #'
 #' @param fcs.paths .fcs file paths
