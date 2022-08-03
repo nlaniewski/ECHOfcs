@@ -52,12 +52,18 @@ fcs.markers.check <- function(fcs.paths,markers.vec,...){
 #'
 #' @param fcs.path .fcs file path
 #' @param selected.markers character vector of marker names to keep
+#' @param include.scatter logical; for fluor/flow based assays, include light-scatter channels
 #'
 #' @return a flowFrame; no transformation applied; no truncation
 #' @export
 #'
-read.fcs.selected.markers <- function(fcs.path, selected.markers){
+read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=F){
   selected.markers.names <- fcs.markers(fcs.path, selected.markers=selected.markers)
+  if(include.scatter){
+    selected.markers.names <- c(selected.markers.names,
+                                paste(rep(c('FSC','SSC'),each=3),c('A','H','W'),sep = "-")
+    )
+  }
   fcs <- flowCore::read.FCS(fcs.path,
                             column.pattern = paste0(selected.markers.names,collapse = "|"),
                             transformation = F, truncate_max_range = F)
@@ -174,4 +180,41 @@ get.metal.markers <- function(fcs.list){
     return(ps.names)
   }
 }
-#
+
+#' Generate a trim value for 'Time'
+#'
+#' @param time.vec numeric time vector
+#' @param plot plot/visualize trim values
+#'
+#' @return a numeric value
+#' @export
+#'
+#' @examples
+time.trim <- function(time.vec,plot=F){
+  #time histogram
+  h <- hist(time.vec,breaks=200,plot=F)
+  #low count bin cut; usually at end of acquisition
+  cut.bins <- mean(h$counts)*.2
+  if(all(!h$counts<cut.bins)){
+    low.bin.break <-max(h$breaks)
+  }else{
+    low.bin.break <- which(h$counts<cut.bins)[1]
+    #time at which low counts start
+    low.bin.break <- h$breaks[low.bin.break]
+  }
+  ##
+  trimmed.counts <- h$counts[h$breaks<low.bin.break]
+  trimmed.counts.mean <- mean(trimmed.counts)
+  trimmed.counts.break <- which(rev(trimmed.counts)<trimmed.counts.mean)[1]
+  ##
+  time.break <- rev(h$breaks[1:length(trimmed.counts)])[8]
+  ##
+  if(plot){
+    plot(h)
+    abline(h=trimmed.counts.mean,col="blue")
+    abline(v=time.break,col="red")
+  }
+  else{
+    return(time.break)
+  }
+}
