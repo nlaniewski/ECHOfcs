@@ -189,7 +189,6 @@ get.metal.markers <- function(fcs.list){
 #' @return a numeric value
 #' @export
 #'
-#' @examples
 time.trim <- function(time.vec,plot=F){
   #time histogram
   h <- hist(time.vec,breaks=200,plot=F)
