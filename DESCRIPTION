@@ -13,4 +13,5 @@ Imports:
     stats,
     stringr,
     parallel
+biocViews:
 RoxygenNote: 7.1.2
