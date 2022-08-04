@@ -12,7 +12,7 @@ fcs.markers.agnostic(fcs.path, selected.markers = NULL)
 \item{selected.markers}{optional character vector of selected marker names; for getting '$P##N' column names}
 }
 \value{
-character vector of marker names; or the column names of selected.markers
+character vector of select marker names, if found; stops if marker not found
 }
 \description{
 Get .fcs marker names from .fcs file path(s); attempts to be agnostic to naming convention

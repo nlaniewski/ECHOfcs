@@ -4,12 +4,12 @@
 \alias{read.fcs.selected.markers.parallel}
 \title{Read .fcs files; keep only selected markers; parallelized}
 \usage{
-read.fcs.selected.markers.parallel(fcs.paths, selected.markers)
+read.fcs.selected.markers.parallel(fcs.paths, ...)
 }
 \arguments{
 \item{fcs.paths}{.fcs file paths}
 
-\item{selected.markers}{character vector of marker names to keep}
+\item{...}{additional arguments as handled by read.fcs.selected.markers}
 }
 \value{
 a list of individual flowFrames

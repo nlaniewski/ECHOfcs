@@ -34,7 +34,7 @@ fcs.markers <- function(fcs.path,name.split="_",split.position=2,selected.marker
 #' @param fcs.path .fcs file path
 #' @param selected.markers optional character vector of selected marker names; for getting '$P##N' column names
 #'
-#' @return character vector of marker names; or the column names of selected.markers
+#' @return character vector of select marker names, if found; stops if marker not found
 #' @export
 #'
 fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL){
@@ -51,7 +51,9 @@ fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL){
     ps.selected <- names(grep(paste0(most.likely.split,paste0(selected.markers,"$"),collapse = "|"),p$S,value = T))
     if(length(ps.selected)==0){
       ps.selected <- names(grep(paste(paste0(selected.markers,most.likely.split),collapse = "|"),p$S,value = T))
-
+      if(length(ps.selected)==0){
+        stop("Selected marker(s) not found")
+      }
     }
     pn.selected <- p$N[names(p$N) %in% sub("S","N",ps.selected)]
     return(pn.selected)
@@ -77,6 +79,24 @@ fcs.markers.check <- function(fcs.paths,markers.vec,...){
     return(TRUE)
   }else{
     stop("Marker conflict")
+  }
+}
+
+#' Check if selected markers exist in all .fcs files
+#'
+#' @param fcs.paths .fcs file paths
+#' @param selected.markers a character vector of select marker names
+#'
+#' @return logical test; stops if a non-unique list of markers/missing markers are found
+#'
+fcs.markers.agnostic.check <- function(fcs.paths,selected.markers){
+  markers.list <- lapply(fcs.paths,function(i){
+    fcs.markers.agnostic(i,selected.markers)
+  })
+  if(length(unique(markers.list))!=1){
+    not.in.all <- paste(Reduce(union,markers.list)[!Reduce(union,markers.list) %in% Reduce(intersect,markers.list)],
+                        collapse = "  &  ")
+    stop(paste("Marker conflict:", not.in.all))
   }
 }
 
@@ -129,22 +149,21 @@ read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter
 #' Read .fcs files; keep only selected markers; parallelized
 #'
 #' @param fcs.paths .fcs file paths
-#' @param selected.markers character vector of marker names to keep
+#' @param ... additional arguments as handled by read.fcs.selected.markers
 #'
 #' @return a list of individual flowFrames
 #' @export
 #'
-read.fcs.selected.markers.parallel <- function(fcs.paths,selected.markers){
-  if(fcs.markers.check(fcs.paths,selected.markers)){
-    message("Making parallel clusters; reading .fcs files")
-    cl <- parallel::makeCluster(parallel::detectCores()-1)
-    fcs.list <- parallel::parSapply(cl, fcs.paths, function(i,m.vec=selected.markers){
-      fcs <- ECHOfcs::read.fcs.selected.markers(fcs.path=i,m.vec)
-    })
-    parallel::stopCluster(cl)
-    #rm(cl)
-    return(fcs.list)
-  }
+read.fcs.selected.markers.parallel <- function(fcs.paths,...){
+  #make a check before initializing parallel clusters
+  fcs.markers.agnostic.check(fcs.paths,...)
+  cl <- parallel::makeCluster(parallel::detectCores()-1)
+  parallel::clusterExport(cl, envir = environment(), c("..."))
+  fcs.list <- parallel::parSapply(cl, fcs.paths, function(i,...){
+    fcs <- read.fcs.selected.markers(fcs.path=i,...)
+  },...)
+  parallel::stopCluster(cl)
+  return(fcs.list)
 }
 
 #' Generate some meta-data from .fcs file path/names; requires an established naming convention
