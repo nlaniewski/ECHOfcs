@@ -156,7 +156,12 @@ read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter
 #'
 read.fcs.selected.markers.parallel <- function(fcs.paths,...){
   #make a check before initializing parallel clusters
-  fcs.markers.agnostic.check(fcs.paths,...)
+  args <- list(...)
+  if("selected.markers" %in% names(args)){
+    selected.markers <- args$selected.markers
+  }
+  fcs.markers.agnostic.check(fcs.paths,selected.markers)
+  #
   cl <- parallel::makeCluster(parallel::detectCores()-1)
   parallel::clusterExport(cl, envir = environment(), c("..."))
   fcs.list <- parallel::parSapply(cl, fcs.paths, function(i,...){
