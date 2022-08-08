@@ -3,6 +3,7 @@
 export(fcs.markers)
 export(fcs.markers.agnostic)
 export(fcs.markers.check)
+export(generate.out.name)
 export(get.fcs.paths.echo)
 export(get.metal.markers)
 export(mdat.frame.from.paths.echo)
