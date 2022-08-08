@@ -44,6 +44,8 @@ fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL){
     p <- p[order(as.numeric(stringr::str_extract(names(p),"[0-9]+")))]
   })
 
+  pn.selected <- p$N[which(p$N %in% selected.markers)]
+
   common.split.counts <- sapply(c(".","_","-"," "),function(split) sum(grepl(split,p$S,fixed = T)))
   most.likely.split <- names(common.split.counts)[which.max(common.split.counts)]
 
@@ -55,10 +57,14 @@ fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL){
         stop("Selected marker(s) not found")
       }
     }
-    pn.selected <- p$N[names(p$N) %in% sub("S","N",ps.selected)]
-    return(pn.selected)
+    pn.selected <- c(p$N[names(p$N) %in% sub("S","N",ps.selected)],pn.selected)
+    if(length(selected.markers)!=length(pn.selected)){
+      stop(paste("Selected",length(selected.markers), "markers but found:",length(pn.selected)))
+    }else{
+      return(pn.selected)
+    }
   }else{
-    return(p$S)
+    return(p)
   }
 }
 
