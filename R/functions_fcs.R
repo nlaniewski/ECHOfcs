@@ -99,7 +99,7 @@ fcs.markers.agnostic.check <- function(fcs.paths,selected.markers){
   markers.list <- lapply(fcs.paths,function(i){
     fcs.markers.agnostic(i,selected.markers)
   })
-  if(length(unique(markers.list))!=1){
+  if(length(unique(lapply(markers.list,unname)))!=1){
     not.in.all <- paste(Reduce(union,markers.list)[!Reduce(union,markers.list) %in% Reduce(intersect,markers.list)],
                         collapse = "  &  ")
     stop(paste("Marker conflict:", not.in.all))
