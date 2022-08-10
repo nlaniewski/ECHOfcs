@@ -4,12 +4,14 @@
 \alias{fcs.markers.agnostic}
 \title{Get .fcs marker names from .fcs file path(s); attempts to be agnostic to naming convention}
 \usage{
-fcs.markers.agnostic(fcs.path, selected.markers = NULL)
+fcs.markers.agnostic(fcs.path, selected.markers = NULL, suppress.check = F)
 }
 \arguments{
 \item{fcs.path}{.fcs file path}
 
 \item{selected.markers}{optional character vector of selected marker names; for getting '$P##N' column names}
+
+\item{suppress.check}{logical; set to TRUE to suppress error checking and return incomplete matching of selected.markers}
 }
 \value{
 character vector of select marker names, if found; stops if marker not found

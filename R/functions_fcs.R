@@ -33,11 +33,12 @@ fcs.markers <- function(fcs.path,name.split="_",split.position=2,selected.marker
 #'
 #' @param fcs.path .fcs file path
 #' @param selected.markers optional character vector of selected marker names; for getting '$P##N' column names
+#' @param suppress.check logical; set to TRUE to suppress error checking and return incomplete matching of selected.markers
 #'
 #' @return character vector of select marker names, if found; stops if marker not found
 #' @export
 #'
-fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL){
+fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL,suppress.check=F){
   header <- flowCore::read.FCSheader(fcs.path)[[1]]
   p <- sapply(c("N","S"),function(i){
     p <- header[grep(paste0("P[0-9]+",i),names(header),value = T)]
@@ -58,7 +59,7 @@ fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL){
       }
     }
     pn.selected <- c(p$N[names(p$N) %in% sub("S","N",ps.selected)],pn.selected)
-    if(length(selected.markers)!=length(pn.selected)){
+    if(length(selected.markers)!=length(pn.selected)&!suppress.check){
       stop(paste("Selected",length(selected.markers), "markers but found:",length(pn.selected)))
     }else{
       return(pn.selected)
