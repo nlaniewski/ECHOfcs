@@ -117,12 +117,13 @@ fcs.markers.agnostic.check <- function(fcs.paths,selected.markers){
 #' @param comp logical; for fluor/flow based assays, compensate; sample-specific
 #' @param comp.mat logical; for fluor/flow based assays, compensate using a provided (modified) matrix
 #' @param subsample.val numeric value; if provided, will subsample the fcs file
+#' @param suppress.check logical; set to TRUE to suppress error checking and return incomplete matching of selected.markers
 #'
 #' @return a flowFrame; no transformation applied; no truncation; pre-processed according to arguments
 #' @export
 #'
-read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=T,trim.time=T,trim.scatter=T,comp=T,comp.mat=NULL,subsample.val=NULL){
-  selected.markers.names <- fcs.markers.agnostic(fcs.path,selected.markers=selected.markers)
+read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=T,trim.time=T,trim.scatter=T,comp=T,comp.mat=NULL,subsample.val=NULL,suppress.check=F){
+  selected.markers.names <- fcs.markers.agnostic(fcs.path,selected.markers=selected.markers,suppress.check = suppress.check)
   if(grepl("LASER",flowCore::read.FCSheader(fcs.path))){
     if(include.scatter){
       selected.markers.names <- c(selected.markers.names,
