@@ -115,11 +115,12 @@ fcs.markers.agnostic.check <- function(fcs.paths,selected.markers){
 #' @param trim.scatter logical; for fluor/flow based assays, trim high light-scatter values
 #' @param comp logical; for fluor/flow based assays, compensate; sample-specific
 #' @param comp.mat logical; for fluor/flow based assays, compensate using a provided (modified) matrix
+#' @param subsample.val numeric value; if provided, will subsample the fcs file
 #'
 #' @return a flowFrame; no transformation applied; no truncation; pre-processed according to arguments
 #' @export
 #'
-read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=T,trim.time=T,trim.scatter=T,comp=T,comp.mat=NULL){
+read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=T,trim.time=T,trim.scatter=T,comp=T,comp.mat=NULL,subsample.val=NULL){
   selected.markers.names <- fcs.markers.agnostic(fcs.path,selected.markers=selected.markers)
   if(grepl("LASER",flowCore::read.FCSheader(fcs.path))){
     if(include.scatter){
@@ -147,6 +148,14 @@ read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter
     fcs <- flowCore::read.FCS(fcs.path,
                               column.pattern = paste0(selected.markers.names,collapse = "|"),
                               transformation = F, truncate_max_range = F)
+  }
+  ##
+  if(!is.null(subsample.val)){
+    if(nrow(fcs)>subsample.val){
+      set.seed(20040501)
+      row.samp <- sample(1:nrow(fcs), subsample.val)
+      fcs <- fcs[row.samp,]
+    }
   }
   ##
   return(fcs)

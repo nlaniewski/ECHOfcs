@@ -8,15 +8,18 @@ generate.out.name(
   study.name = NULL,
   f.names = NULL,
   prefix.name = NULL,
+  suffix.name = NULL,
   f.extension = ".rds"
 )
 }
 \arguments{
 \item{study.name}{character string; organizational name for a sequence of experiments}
 
-\item{f.names}{character vector; file names that include study.name}
+\item{f.names}{character vector; file names/file paths that include study.name}
 
-\item{prefix.name}{character string; unique identifier for the filename; what is it?}
+\item{prefix.name}{character string; unique identifier for the filename}
+
+\item{suffix.name}{character string; unique identifier for the filename}
 
 \item{f.extension}{character string; filename extension}
 }

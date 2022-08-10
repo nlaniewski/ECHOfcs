@@ -11,7 +11,8 @@ read.fcs.selected.markers(
   trim.time = T,
   trim.scatter = T,
   comp = T,
-  comp.mat = NULL
+  comp.mat = NULL,
+  subsample.val = NULL
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ read.fcs.selected.markers(
 \item{comp}{logical; for fluor/flow based assays, compensate; sample-specific}
 
 \item{comp.mat}{logical; for fluor/flow based assays, compensate using a provided (modified) matrix}
+
+\item{subsample.val}{numeric value; if provided, will subsample the fcs file}
 }
 \value{
 a flowFrame; no transformation applied; no truncation; pre-processed according to arguments
