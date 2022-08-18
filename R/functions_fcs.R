@@ -35,7 +35,7 @@ fcs.markers <- function(fcs.path,name.split="_",split.position=2,selected.marker
 #' @param selected.markers optional character vector of selected marker names; for getting '$P##N' column names
 #' @param suppress.check logical; set to TRUE to suppress error checking and return incomplete matching of selected.markers
 #'
-#' @return character vector of select marker names, if found; stops if marker not found
+#' @return a list; marker 'names' and marker 'stains';stops if marker not found
 #' @export
 #'
 fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL,suppress.check=F){
@@ -132,7 +132,7 @@ fcs.markers.agnostic.check <- function(fcs.paths,selected.markers){
 #' @export
 #'
 read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter=T,trim.time=T,trim.scatter=T,comp=T,comp.mat=NULL,subsample.val=NULL,suppress.check=F){
-  selected.markers.names <- fcs.markers.agnostic(fcs.path,selected.markers=selected.markers,suppress.check = suppress.check)
+  selected.markers.names <- fcs.markers.agnostic(fcs.path,selected.markers=selected.markers,suppress.check = suppress.check)$N#return the 'names' from the list
   if(grepl("LASER",flowCore::read.FCSheader(fcs.path))){
     if(include.scatter){
       selected.markers.names <- c(selected.markers.names,

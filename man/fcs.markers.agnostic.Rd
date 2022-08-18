@@ -14,7 +14,7 @@ fcs.markers.agnostic(fcs.path, selected.markers = NULL, suppress.check = F)
 \item{suppress.check}{logical; set to TRUE to suppress error checking and return incomplete matching of selected.markers}
 }
 \value{
-character vector of select marker names, if found; stops if marker not found
+a list; marker 'names' and marker 'stains';stops if marker not found
 }
 \description{
 Get .fcs marker names from .fcs file path(s); attempts to be agnostic to naming convention
