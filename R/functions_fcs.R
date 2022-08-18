@@ -62,7 +62,9 @@ fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL,suppress.check=F
     if(length(selected.markers)!=length(pn.selected)&!suppress.check){
       stop(paste("Selected",length(selected.markers), "markers but found:",length(pn.selected)))
     }else{
-      return(pn.selected)
+      p$N <- p$N[p$N %in% pn.selected]
+      p$S <- p$S[names(p$S) %in% ps.selected]
+      return(p)
     }
   }else{
     return(p)
@@ -97,14 +99,21 @@ fcs.markers.check <- function(fcs.paths,markers.vec,...){
 #' @return logical test; stops if a non-unique list of markers/missing markers are found
 #'
 fcs.markers.agnostic.check <- function(fcs.paths,selected.markers){
-  markers.list <- lapply(fcs.paths,function(i){
+  markers.list <- lapply(fcs.paths, function(i) {
     fcs.markers.agnostic(i,selected.markers)
   })
-  if(length(unique(lapply(markers.list,unname)))!=1){
-    not.in.all <- paste(Reduce(union,markers.list)[!Reduce(union,markers.list) %in% Reduce(intersect,markers.list)],
-                        collapse = "  &  ")
-    stop(paste("Marker conflict:", not.in.all))
+  unique.n <- unique(lapply(markers.list,'[[','N'))
+  unique.s <- unique(lapply(markers.list,'[[','S'))
+  if(length(unique.s)!=1){
+    print(unique.n)
+    print(unique.s)
+    stop("The provided selected markers are not common/found across this list of .fcs files")
   }
+  # if(length(unique(lapply(markers.list,unname)))!=1){
+  #   not.in.all <- paste(Reduce(union,markers.list)[!Reduce(union,markers.list) %in% Reduce(intersect,markers.list)],
+  #                       collapse = "  &  ")
+  #   stop(paste("Marker conflict:", not.in.all))
+  # }
 }
 
 #' Read .fcs file; keep only selected markers
