@@ -4,10 +4,12 @@
 \alias{read.fcs.selected.markers.parallel}
 \title{Read .fcs files; keep only selected markers; parallelized}
 \usage{
-read.fcs.selected.markers.parallel(fcs.paths, ...)
+read.fcs.selected.markers.parallel(fcs.paths, list.check = T, ...)
 }
 \arguments{
 \item{fcs.paths}{.fcs file paths}
+
+\item{list.check}{logical; set to FALSE to suppress 'fcs.markers.agnostic.check'}
 
 \item{...}{additional arguments as handled by read.fcs.selected.markers}
 }

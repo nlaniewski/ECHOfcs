@@ -183,17 +183,20 @@ read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter
 #'
 #' @param fcs.paths .fcs file paths
 #' @param ... additional arguments as handled by read.fcs.selected.markers
+#' @param list.check logical; set to FALSE to suppress 'fcs.markers.agnostic.check'
 #'
 #' @return a list of individual flowFrames
 #' @export
 #'
-read.fcs.selected.markers.parallel <- function(fcs.paths,...){
+read.fcs.selected.markers.parallel <- function(fcs.paths,list.check=T,...){
   #make a check before initializing parallel clusters
   args <- list(...)
   if("selected.markers" %in% names(args)){
     selected.markers <- args$selected.markers
   }
-  fcs.markers.agnostic.check(fcs.paths,selected.markers)
+  if(list.check){
+    fcs.markers.agnostic.check(fcs.paths,selected.markers)
+  }
   #
   cl <- parallel::makeCluster(parallel::detectCores()-1)
   parallel::clusterExport(cl, envir = environment(), c("..."))
