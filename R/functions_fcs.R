@@ -225,6 +225,11 @@ mdat.frame.from.paths.echo <- function(fcs.paths,name.split="_"){
     ##
     s <- unlist(strsplit(sub(".fcs","",basename(i)),split = name.split))
     s <- grep("CONCATENATED",s,invert = T,value = T)
+    ##
+    if(length(s)>grep("\\+|PBMC",s)){
+      s <- s[1:grep("\\+|PBMC",s)]
+    }
+    ##
     if(!any(grepl("+",s,fixed = T))){s <- c(s,"PBMC")}
     ##
     vec.tmp <- stats::setNames(rep(NA,5),nm=c("subject","visit","condition","batch","cell.type"))
