@@ -103,17 +103,24 @@ fcs.markers.agnostic.check <- function(fcs.paths,selected.markers){
     fcs.markers.agnostic(i,selected.markers)
   })
   unique.n <- unique(lapply(markers.list,'[[','N'))
+  unique.n.intersect <- Reduce(intersect,unique.n)
+  if(!is.vector(unique.n.intersect)){
+    stop("Unique names ('P$N') error: need a vector...")
+  }
+  ##
   unique.s <- unique(lapply(markers.list,'[[','S'))
-  if(length(unique.s)!=1){
+  unique.s.length <- unique(sapply(unique.s,length))
+  ##
+  if(length(unique.n.intersect)!=unique.s.length){
     print(unique.n)
     print(unique.s)
-    stop("The provided selected markers are not common/found across this list of .fcs files")
+    print(unique.n.intersect)
+    print(unique.s.length)
+    stop(paste("Length of unique names ('P$N') does not equal length of stains ('P$S'))",
+               "The provided selected markers are not common/found across this list of .fcs files",
+               sep = "\n")
+    )
   }
-  # if(length(unique(lapply(markers.list,unname)))!=1){
-  #   not.in.all <- paste(Reduce(union,markers.list)[!Reduce(union,markers.list) %in% Reduce(intersect,markers.list)],
-  #                       collapse = "  &  ")
-  #   stop(paste("Marker conflict:", not.in.all))
-  # }
 }
 
 #' Read .fcs file; keep only selected markers
