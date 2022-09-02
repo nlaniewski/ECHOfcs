@@ -267,8 +267,10 @@ get.fcs.paths.echo <- function(root.dir.type = c("modified","source"),sub.dir.ty
   fcs.dirs <- grep(paste0(sub.dir.type,"$"),fcs.dirs,value = T)
   fcs.files <- sapply(fcs.dirs,function(i){
     fcs.files <- list.files(i,recursive=T,pattern=".fcs",full.names = T)
-    fcs.files <- grep(subset.type,fcs.files,value = T)
-  })
+    if(subset.type){
+      fcs.files <- grep(subset.type,fcs.files,value = T)
+    }
+  },simplify = F)
   fcs.files <- fcs.files[sapply(fcs.files,length)!=0]
   names(fcs.files) <- stringr::str_extract(names(fcs.files),"[0-9]{4}_[0-9]{2}_[0-9]{2}_ECHO_[0-9]{3}")
   return(fcs.files)
