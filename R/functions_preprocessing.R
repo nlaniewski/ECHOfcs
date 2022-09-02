@@ -14,16 +14,16 @@ bead.viability.trim <- function(normalized.fcs.file.path, viability_metal, bead_
 
   input.cytoffcs <- flowCore::read.FCS(normalized.fcs.file.path, transformation = F, truncate_max_range = F)
 
-  viability.beads <- setNames(c(paste0(viability_metal, "Di"), paste0(bead_metal, "Di")), c("viability", "beads"))
+  viability.beads <- stats::setNames(c(paste0(viability_metal, "Di"), paste0(bead_metal, "Di")), c("viability", "beads"))
 
   fcs.tmp <- input.cytoffcs[, which(flowCore::colnames(input.cytoffcs) %in% c(viability.beads, "Time"))]
   fcs.tmp <- flowCore::transform(fcs.tmp, flowCore::transformList(viability.beads, list(function(x, cofactor = 5){ asinh(x)/cofactor})))
 
   #
   if(cut.method == "densities"){
-    bv.densities <- list(b = density(subset(fcs.tmp@exprs[, viability.beads["beads"]],
-                                            fcs.tmp@exprs[, viability.beads["beads"]] > quantile(fcs.tmp@exprs[, viability.beads["beads"]], probs = .95))),
-                         v = density(subset(fcs.tmp@exprs[, viability.beads["viability"]],
+    bv.densities <- list(b = stats::density(subset(fcs.tmp@exprs[, viability.beads["beads"]],
+                                            fcs.tmp@exprs[, viability.beads["beads"]] > stats::quantile(fcs.tmp@exprs[, viability.beads["beads"]], probs = .95))),
+                         v = stats::density(subset(fcs.tmp@exprs[, viability.beads["viability"]],
                                             fcs.tmp@exprs[, viability.beads["viability"]] > 0))
     )
 
@@ -40,10 +40,10 @@ bead.viability.trim <- function(normalized.fcs.file.path, viability_metal, bead_
 
     trim.values <- lapply(bv.densities, valley)
 
-    viability.cutoff <- quantile(fcs.tmp@exprs[, viability.beads["viability"]][which(fcs.tmp@exprs[, viability.beads["viability"]] < trim.values$v)],
+    viability.cutoff <- stats::quantile(fcs.tmp@exprs[, viability.beads["viability"]][which(fcs.tmp@exprs[, viability.beads["viability"]] < trim.values$v)],
                                  probs = c(0.98))
 
-    bead.cutoff <- quantile(fcs.tmp@exprs[, viability.beads["beads"]][which(fcs.tmp@exprs[, viability.beads["beads"]] < trim.values$b)],
+    bead.cutoff <- stats::quantile(fcs.tmp@exprs[, viability.beads["beads"]][which(fcs.tmp@exprs[, viability.beads["beads"]] < trim.values$b)],
                             probs = c(0.99))
 
     trim.index <- intersect(which(fcs.tmp@exprs[, viability.beads["beads"]] < bead.cutoff),
@@ -52,7 +52,7 @@ bead.viability.trim <- function(normalized.fcs.file.path, viability_metal, bead_
     trim.index
   }else if(cut.method == "counts"){
     peak.detection.histogram.counts <- function(dat.vector, cut.percent = 0.65){
-      x <- hist(dat.vector*-1, breaks = 200, plot = FALSE)
+      x <- graphics::hist(dat.vector*-1, breaks = 200, plot = FALSE)
       peak.cut <- c(25,50,100,200,500,1000,2000,5000)
       peak <- vector(mode = "numeric", length = length(peak.cut))
       for(i in seq(peak)){
@@ -95,22 +95,22 @@ bead.viability.trim <- function(normalized.fcs.file.path, viability_metal, bead_
   event.total <- data.frame(total = sapply(dats, nrow), type = c("original", "trimmed"))
   dats <- data.table::rbindlist(dats)
 
-  plot.viability <- ggplot2::ggplot(dats[dats$viability>0,], ggplot2::aes(Time, viability)) +
+  plot.viability <- ggplot2::ggplot(dats[dats$viability>0,], ggplot2::aes(!!quote(Time), !!quote(viability))) +
     ggplot2::geom_hex() +
     viridis::scale_fill_viridis(option = "plasma", limits = c(100, 4000), oob = scales::squish) +
     ggplot2::geom_hline(yintercept = viability.cutoff, color = "red") +
     #geom_hline(yintercept = viability.peak.value, color = "red") +
     ggplot2::facet_wrap(~type) +
-    ggplot2::geom_text(data = event.total, ggplot2::aes(x = Inf, y = Inf, label = total), hjust = 1.5, vjust = 1.5) +
+    ggplot2::geom_text(data = event.total, ggplot2::aes(x = Inf, y = Inf, label = !!quote(total)), hjust = 1.5, vjust = 1.5) +
     ggplot2::labs(title = basename(normalized.fcs.file.path))
 
-  plot.beads <- ggplot2::ggplot(dats[dats$beads>0,], ggplot2::aes(Time, beads)) +
+  plot.beads <- ggplot2::ggplot(dats[dats$beads>0,], ggplot2::aes(!!quote(Time), !!quote(beads))) +
     ggplot2::geom_hex() +
     viridis::scale_fill_viridis(option = "plasma", limits = c(50, 500), oob = scales::squish) +
     ggplot2::geom_hline(yintercept = bead.cutoff, color = "red") +
     #geom_hline(yintercept = bead.peak.value, color = "red") +
     ggplot2::facet_wrap(~type) +
-    ggplot2::geom_text(data = event.total, ggplot2::aes(x = Inf, y = Inf, label = total), hjust = 1.5, vjust = 1.5) +
+    ggplot2::geom_text(data = event.total, ggplot2::aes(x = Inf, y = Inf, label = !!quote(total)), hjust = 1.5, vjust = 1.5) +
     ggplot2::labs(title = basename(normalized.fcs.file.path))
 
   plot.grobs <- gridExtra::arrangeGrob(plot.viability, plot.beads)
