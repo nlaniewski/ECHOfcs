@@ -8,8 +8,12 @@ Description: Contains ECHO-specific utility/workflow functions for .fcs files.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
+    data.table,
     flowCore,
+    ggplot2,
+    gridExtra,
+    scales,
     stats,
     stringr,
     parallel
