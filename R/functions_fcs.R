@@ -267,7 +267,7 @@ get.fcs.paths.echo <- function(root.dir.type = c("modified","source"),sub.dir.ty
   fcs.dirs <- grep(paste0(sub.dir.type,"$"),fcs.dirs,value = T)
   fcs.files <- sapply(fcs.dirs,function(i){
     fcs.files <- list.files(i,recursive=T,pattern=".fcs",full.names = T)
-    if(subset.type){
+    if(!is.null(subset.type)){
       fcs.files <- grep(subset.type,fcs.files,value = T)
     }
   },simplify = F)
