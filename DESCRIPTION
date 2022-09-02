@@ -15,6 +15,7 @@ Imports:
     graphics,
     gridExtra,
     parallel,
+    pdftools,
     scales,
     stats,
     stringr,

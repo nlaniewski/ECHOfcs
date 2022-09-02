@@ -117,3 +117,17 @@ bead.viability.trim <- function(normalized.fcs.file.path, viability_metal, bead_
   ggplot2::ggsave(file = file.path(dir.mod.p, sub("_normalized.fcs", ".pdf", basename(normalized.fcs.file.path))),
                   plot.grobs, width = 9, height = 7)
 }
+
+combine.trim.plots <- function(echo.exp.number){
+  exp.dir <- grep(echo.exp.number, list.dirs("../Mass_Cytometry/data_modified/", recursive = F), value = T)
+  trim.plot.dir <- grep("trim_plots", list.dirs(exp.dir, recursive = T), value = T)
+
+  out.file <- file.path(trim.plot.dir, paste(basename(exp.dir), "combined_trim.pdf", sep = "_"))
+  if(file.exists(out.file)){
+    file.remove(out.file)
+  }
+
+  trim.plots <- list.files(trim.plot.dir, pattern = ".pdf", full.names = T)
+
+  pdftools::pdf_combine(trim.plots, output = out.file)
+}
