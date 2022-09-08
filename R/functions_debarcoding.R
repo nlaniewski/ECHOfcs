@@ -1,4 +1,4 @@
-barcode.assignment.fsom.nodes <- function(nCk = c(7,3), fsom.codes = fsom$map$codes, threshold.override = NULL){
+barcode.assignment.fsom.codes <- function(nCk = c(7,3), fsom.codes = NULL, threshold.override = NULL){
 
   if(nCk[1] != ncol(fsom.codes)){
     print("Wrong nCHOOSEk scheme!")
@@ -26,7 +26,7 @@ barcode.assignment.fsom.nodes <- function(nCk = c(7,3), fsom.codes = fsom$map$co
   })
 
   if(!is.null(threshold.override)){
-    if(class(threshold.override) != "list"){
+    if(!is.list(threshold.override)){
       stop("Need a named list for override; example: 'list(Cd106Di = 0.75)'")
     }else{
       message(paste("Overring node threshold(s) for:", paste0(names(threshold.override), collapse = ","), sep = " "))
@@ -37,7 +37,7 @@ barcode.assignment.fsom.nodes <- function(nCk = c(7,3), fsom.codes = fsom$map$co
   }
 
   node.key <- sapply(names(node.thresholds), function(x){
-    key <- ifelse(fsom.nodes[, x] > node.thresholds[x], 1, 0)
+    key <- ifelse(fsom.codes[, x] > node.thresholds[x], 1, 0)
   })
 
   node.key.t <- t(node.key)
@@ -323,7 +323,7 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     ##
     nCk <- c(ncol(fsom$data), 3)
     message(paste("Assigning barcodes based on a",paste(paste(nCk[1], "choose", "3", sep = "-"), "scheme", sep = " "), sep = " "))
-    fsom$barcode.assignment <- barcode.assignment.fsom.nodes(fsom.codes = fsom$map$codes, nCk = nCk, ...)
+    fsom$barcode.assignment <- barcode.assignment.fsom.codes(fsom.codes = fsom$map$codes, nCk = nCk, ...)
     ##
     if(cut.method == 'SD'){
       message("Cutting barcodes using 'SD' method...")
