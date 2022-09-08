@@ -10,15 +10,23 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     data.table,
+    EmbedSOM,
     flowCore,
+    FlowSOM,
     ggplot2,
+    ggpubr,
     graphics,
+    grDevices,
     gridExtra,
+    nnls,
     parallel,
     pdftools,
+    pheatmap,
+    plyr,
     scales,
     stats,
     stringr,
+    utils,
     viridis
 biocViews:
 RoxygenNote: 7.2.1

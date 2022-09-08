@@ -1,25 +1,25 @@
-barcode.assignment.fsom.nodes <- function(nCk = c(7,3), fsom.nodes = fsom.object$map$codes, threshold.override = NULL){
+barcode.assignment.fsom.nodes <- function(nCk = c(7,3), fsom.codes = fsom$map$codes, threshold.override = NULL){
 
-  if(nCk[1] != ncol(fsom.nodes)){
+  if(nCk[1] != ncol(fsom.codes)){
     print("Wrong nCHOOSEk scheme!")
   }else{
-    barcode.combinations <- t(combn(nCk[1], nCk[2]))
+    barcode.combinations <- t(utils::combn(nCk[1], nCk[2]))
     barcode.key <- matrix(data = 0,
                           nrow = nrow(barcode.combinations),
-                          ncol = ncol(fsom.nodes),
-                          dimnames = list(NULL, colnames(fsom.nodes)))
+                          ncol = ncol(fsom.codes),
+                          dimnames = list(NULL, colnames(fsom.codes)))
 
     for(i in seq(nrow(barcode.key))){
       barcode.key[i, barcode.combinations[i, ]] <- 1
     }
   }
 
-  node.thresholds <- apply(fsom.nodes, 2, function(x, high.edge.trim = "YES"){
+  node.thresholds <- apply(fsom.codes, 2, function(x, high.edge.trim = "YES"){
     if(high.edge.trim == "YES"){
       q.val <- stats::quantile(x, probs = .999)
       d <- stats::density(x[x < q.val])
     }else{
-      d <- density(x)
+      d <- stats::density(x)
     }
     valley.max.x = max(d$x[which(diff(sign(diff(d$y)))==2)])
     return(valley.max.x)
@@ -260,26 +260,26 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     if(all(grepl("Cd", colnames(fsom$data)))){
       #generate Cadmium spill matrix
       cadmium.spill.values <- list(
-        Cd106Di = setNames(c(0.0, 0.2, 0.2, 0.6, 0.8, 0.4, 0.0),
-                           nm =paste0("Cd", c(106,110:114,116), "Di")
+        Cd106Di = stats::setNames(c(0.0, 0.2, 0.2, 0.6, 0.8, 0.4, 0.0),
+                                  nm =paste0("Cd", c(106,110:114,116), "Di")
         ),
-        Cd110Di = setNames(c(0.0, 0.0, 1.4, 1.3, 0.5, 0.8, 0.2),
-                           nm =paste0("Cd", c(106,110:114,116), "Di")
+        Cd110Di = stats::setNames(c(0.0, 0.0, 1.4, 1.3, 0.5, 0.8, 0.2),
+                                  nm =paste0("Cd", c(106,110:114,116), "Di")
         ),
-        Cd111Di = setNames(c(0.0, 0.3, 0.0, 4.5, 0.5, 0.8, 0.1),
-                           nm =paste0("Cd", c(106,110:114,116), "Di")
+        Cd111Di = stats::setNames(c(0.0, 0.3, 0.0, 4.5, 0.5, 0.8, 0.1),
+                                  nm =paste0("Cd", c(106,110:114,116), "Di")
         ),
-        Cd112Di = setNames(c(0.0, 0.0, 0.9, 0.0, 1.0, 0.0, 0.0),
-                           nm =paste0("Cd", c(106,110:114,116), "Di")
+        Cd112Di = stats::setNames(c(0.0, 0.0, 0.9, 0.0, 1.0, 0.0, 0.0),
+                                  nm =paste0("Cd", c(106,110:114,116), "Di")
         ),
-        Cd113Di = setNames(c(0.0, 0.1, 0.1, 1.5, 0.0, 4.0, 0.2),
-                           nm =paste0("Cd", c(106,110:114,116), "Di")
+        Cd113Di = stats::setNames(c(0.0, 0.1, 0.1, 1.5, 0.0, 4.0, 0.2),
+                                  nm =paste0("Cd", c(106,110:114,116), "Di")
         ),
-        Cd114Di = setNames(c(0.0, 0.1, 0.1, 0.3, 0.3, 0.0, 0.2),
-                           nm =paste0("Cd", c(106,110:114,116), "Di")
+        Cd114Di = stats::setNames(c(0.0, 0.1, 0.1, 0.3, 0.3, 0.0, 0.2),
+                                  nm =paste0("Cd", c(106,110:114,116), "Di")
         ),
-        Cd116Di = setNames(c(0.0, 0.3, 0.3, 0.7, 0.4, 1.8, 0.0),
-                           nm =paste0("Cd", c(106,110:114,116), "Di")
+        Cd116Di = stats::setNames(c(0.0, 0.3, 0.3, 0.7, 0.4, 1.8, 0.0),
+                                  nm =paste0("Cd", c(106,110:114,116), "Di")
         )
       )
       A <- do.call(rbind, cadmium.spill.values)/100; diag(A) <- 1
@@ -323,7 +323,7 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     ##
     nCk <- c(ncol(fsom$data), 3)
     message(paste("Assigning barcodes based on a",paste(paste(nCk[1], "choose", "3", sep = "-"), "scheme", sep = " "), sep = " "))
-    fsom$barcode.assignment <- barcode.assignment.fsom.nodes(fsom.nodes = fsom$map$codes, nCk = nCk, ...)
+    fsom$barcode.assignment <- barcode.assignment.fsom.nodes(fsom.codes = fsom$map$codes, nCk = nCk, ...)
     ##
     if(cut.method == 'SD'){
       message("Cutting barcodes using 'SD' method...")
@@ -394,9 +394,9 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
       }, simplify = F)
       ##
       out.path <- file.path(dir.mod.p,paste0(paste(f.name,"barcode_cuts_SD", Sys.Date(), sep = "_"),".pdf"))
-      pdf(out.path)
+      grDevices::pdf(out.path)
       print(cut.plots)
-      dev.off()
+      grDevices::dev.off()
       #Biobase::openPDF(normalizePath(out.path))
     }else if(cut.method == 'qdist'){
       # message("Cutting barcodes using 'qdist' method...")
@@ -480,7 +480,7 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     ##
     message(paste("Generating barcode total counts:",i))
     pool.name <- unique(stringr::str_extract(rownames(fsom$metaData), "ECHO_[0-9]{8}_[A-Z]*"))
-    barcode_totals <- data.frame(setNames(plyr::count(fsom$barcode.col.cut), nm = c("barcode", "count")),
+    barcode_totals <- data.frame(stats::setNames(plyr::count(fsom$barcode.col.cut), nm = c("barcode", "count")),
                                  proportion = plyr::count(fsom$barcode.col.cut)$freq/sum(plyr::count(fsom$barcode.col.cut)$freq)*100,
                                  pool = pool.name,
                                  condition = strsplit(pool.name, "_")[[1]][3],
@@ -488,6 +488,7 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
                                  experiment = sub("_", "", unique(stringr::str_extract(rownames(fsom$metaData), "_[0-9]{3}"))),
                                  date = unique(stringr::str_extract(rownames(fsom$metaData), "[0-9]{8}"))
     )
+    barcode_totals$barcode <- as.factor(barcode_totals$barcode)
     barcode_totals.file.path <- file.path(dir.mod, "counts")
     ##
     if(!dir.exists(barcode_totals.file.path)){
@@ -495,16 +496,16 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     }
     ##
     barcode.counts.fname <- paste0(paste(pool.name, "counts", Sys.Date(), sep = "_"), ".csv")
-    write.csv(barcode_totals, file = file.path(barcode_totals.file.path, barcode.counts.fname), row.names = F)
+    utils::write.csv(barcode_totals, file = file.path(barcode_totals.file.path, barcode.counts.fname), row.names = F)
     ##
     message(paste("Generating barcode yield plots:",i))
-    barcode_yields <- list(proportion = ggplot2::ggplot(subset(barcode_totals, barcode_totals$barcode != 0), ggplot2::aes(x = as.factor(barcode), y = proportion)) +
+    barcode_yields <- list(proportion = ggplot2::ggplot(subset(barcode_totals, barcode_totals$barcode != 0), ggplot2::aes(!!quote(barcode), !!quote(proportion))) +
                              ggplot2::geom_col() +
                              ggplot2::labs(title = barcode_totals$pool,
                                            x = "Barcode",
                                            y = "Proportion (%) of Pool",
                                            caption = paste(paste0(round(subset(barcode_totals, barcode == 0)$proportion, 2),"%"), "unassigned", sep = " ")),
-                           count = ggplot2::ggplot(subset(barcode_totals, barcode_totals$barcode != 0), ggplot2::aes(x = as.factor(barcode), y = count)) +
+                           count = ggplot2::ggplot(subset(barcode_totals, barcode_totals$barcode != 0), ggplot2::aes(!!quote(barcode),!!quote(count))) +
                              ggplot2::geom_col() +
                              ggplot2::labs(title = barcode_totals$pool,
                                            x = "Barcode",
@@ -512,14 +513,14 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
                                            caption = paste(subset(barcode_totals, barcode == 0)$count, "unassigned", sep = " "))
     )
     ##
-    pdf(file.path(dir.mod.p,paste0(paste(pool.name,"barcode_yields",Sys.Date(),sep = "_"),".pdf")))
+    grDevices::pdf(file.path(dir.mod.p,paste0(paste(pool.name,"barcode_yields",Sys.Date(),sep = "_"),".pdf")))
     print(barcode_yields$proportion)
     print(barcode_yields$count)
-    dev.off()
+    grDevices::dev.off()
     ##
     message(paste("Generating barcode medians:",i))
-    barcode.medians <- t(sapply(setNames(nm = sort(unique(fsom$barcode.col.cut))), function(i){
-      apply(fsom$data[fsom$barcode.col.cut == i, ], 2, median)
+    barcode.medians <- t(sapply(stats::setNames(nm = sort(unique(fsom$barcode.col.cut))), function(i){
+      apply(fsom$data[fsom$barcode.col.cut == i, ], 2, stats::median)
     }))
 
     barcode.medians.file.path <- file.path(dir.mod, "barcode_medians")
@@ -528,7 +529,7 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     }
 
     barcode.medians.fname <- paste0(paste(pool.name, "barcode_medians", Sys.Date(), sep = "_"), ".csv")
-    write.csv(barcode.medians, file = file.path(barcode.medians.file.path, barcode.medians.fname), row.names = T)
+    utils::write.csv(barcode.medians, file = file.path(barcode.medians.file.path, barcode.medians.fname), row.names = T)
 
     pheatmap::pheatmap(barcode.medians,
                        cluster_rows = FALSE,
