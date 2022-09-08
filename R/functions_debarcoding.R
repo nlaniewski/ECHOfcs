@@ -375,7 +375,7 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
         cuts <- sapply(cut.list[[as.name(i)]], '[', 'cut')
         bc.pos <- sub("Di.cut", "",names(which(sapply(cuts[!is.na(cuts)], length)==2)))
         plot.list <- sapply(plot.pairs, function(j){
-          ggplot2::ggplot(dat.sub, ggplot2::aes_string(as.name(j[1]),as.name(j[2]))) +
+          ggplot2::ggplot(dat.sub, ggplot2::aes(!!ggplot2::sym(j[1]),!!ggplot2::sym(j[2]))) +
             ggplot2::geom_hex(bins = 200) +
             viridis::scale_fill_viridis(option = "plasma", limits = c(0, 100), oob = scales::squish) +
             ggplot2::geom_vline(xintercept = cut.list[[as.name(i)]][[j[1]]]$cut) +
@@ -499,18 +499,20 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     utils::write.csv(barcode_totals, file = file.path(barcode_totals.file.path, barcode.counts.fname), row.names = F)
     ##
     message(paste("Generating barcode yield plots:",i))
-    barcode_yields <- list(proportion = ggplot2::ggplot(subset(barcode_totals, barcode_totals$barcode != 0), ggplot2::aes(!!quote(barcode), !!quote(proportion))) +
+    dat <- droplevels(subset(barcode_totals, barcode_totals$barcode != 0))
+    dat.zero <- droplevels(subset(barcode_totals, barcode_totals$barcode == 0))
+    barcode_yields <- list(proportion = ggplot2::ggplot(dat, ggplot2::aes(!!quote(barcode), !!quote(proportion))) +
                              ggplot2::geom_col() +
                              ggplot2::labs(title = barcode_totals$pool,
                                            x = "Barcode",
                                            y = "Proportion (%) of Pool",
-                                           caption = paste(paste0(round(subset(barcode_totals, barcode == 0)$proportion, 2),"%"), "unassigned", sep = " ")),
-                           count = ggplot2::ggplot(subset(barcode_totals, barcode_totals$barcode != 0), ggplot2::aes(!!quote(barcode),!!quote(count))) +
+                                           caption = paste(paste0(round(dat.zero$proportion, 2),"%"), "unassigned", sep = " ")),
+                           count = ggplot2::ggplot(dat, ggplot2::aes(!!quote(barcode),!!quote(count))) +
                              ggplot2::geom_col() +
                              ggplot2::labs(title = barcode_totals$pool,
                                            x = "Barcode",
                                            y = "Cell Count in Pool",
-                                           caption = paste(subset(barcode_totals, barcode == 0)$count, "unassigned", sep = " "))
+                                           caption = paste(dat.zero$count, "unassigned", sep = " "))
     )
     ##
     grDevices::pdf(file.path(dir.mod.p,paste0(paste(pool.name,"barcode_yields",Sys.Date(),sep = "_"),".pdf")))
