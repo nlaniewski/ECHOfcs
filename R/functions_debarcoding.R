@@ -583,3 +583,47 @@ barcode_CD45_fsom_ECHO_batch_condition <- function(echo.fcs.trimmed.paths, data.
     #})
   }
 }
+
+fsom_coded_to_fcs_coded <- function(fsom_coded.file.path){
+  message(paste("Reading:", fsom_coded.file.path))
+  fsom <- readRDS(fsom_coded.file.path)
+  if(length(which((names(fsom) %in% c("barcode.col","barcode.col.cut"))))!=2){
+    stop("Need fsom.object with '$barcode.col' and '$barcode.col.cut'")
+  }
+  invisible(sapply(rownames(fsom$metaData), function(i){
+
+    message(paste("Reading file:", i, sep = " "))
+
+    fcs <- flowCore::read.FCS(i, transformation = F, truncate_max_range = F)
+
+    samp.index <- which(rownames(fsom$metaData) == i)
+    row.index <- fsom$metaData[samp.index,1]:fsom$metaData[samp.index,2]
+
+    if(nrow(fcs) != length(row.index)){
+      stop("Row total mismatch...")
+    }
+
+    fcs <- flowCore::fr_append_cols(fcs,
+                                    matrix(c(fsom$map$mapping[, 1][row.index],
+                                             fsom$barcode.col[row.index],
+                                             fsom$barcode.col.cut[row.index]),
+                                           ncol = 3,
+                                           dimnames = list(NULL, c("node_CD45",
+                                                                   "barcode",
+                                                                   "barcode_cut"))
+                                    )
+    )
+
+    f.name <- sub(".fcs", "", fcs@description$`$FIL`)
+
+    fcs@description$`$FIL` <- paste0(paste(f.name, "fsom_coded", sep = "_"), ".fcs")
+
+    fcs.file.path <- file.path(sub("02_trimmed", "03_coded", dirname(rownames(fsom$metaData)[1])))
+
+    if(!dir.exists(fcs.file.path)){
+      dir.create(fcs.file.path)
+    }
+
+    flowCore::write.FCS(fcs, filename = file.path(fcs.file.path, fcs@description$`$FIL`))
+  }))
+}
