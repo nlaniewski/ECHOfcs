@@ -627,3 +627,249 @@ fsom_coded_to_fcs_coded <- function(fsom_coded.file.path){
     flowCore::write.FCS(fcs, filename = file.path(fcs.file.path, fcs@description$`$FIL`))
   }))
 }
+
+fcs.headers.no.pars <- function(fcs.file.paths, keywords.build = TRUE, return.combined = TRUE){
+  fcs.header <- sapply(fcs.file.paths, function(i){
+    i <- as.data.frame(flowCore::read.FCSheader(i))
+    i <- data.frame(keyword = rownames(i),
+                    value = i[,1])
+    i <- i[-grep("\\$P[0-9]{1}", i$keyword), ]
+    i <- i[-grep("\\$BEGIN", i$keyword), ]
+    i <- i[-grep("\\$BYTEORD", i$keyword), ]
+    i <- i[-grep("\\$DATATYPE", i$keyword), ]
+    i <- i[-grep("\\$END", i$keyword), ]
+    i <- i[-grep("\\$MODE", i$keyword), ]
+    i <- i[-grep("\\$NEXTDATA", i$keyword), ]
+    i <- i[-grep("\\$PAR", i$keyword), ]
+
+    helios.keywords <- c("FluidigmBarcoded",
+                         "FluidigmMassTagsChecked",
+                         "FluidigmNormalized",
+                         "TargetGemStoneMethod")
+
+    if(any(helios.keywords %in% i$keyword)){
+      i <- i[-grep(paste0(helios.keywords, collapse = "|"), i$keyword), ]
+    }
+
+    i
+  }, USE.NAMES = T, simplify = F)
+
+  if(unique(sapply(fcs.header, nrow)) == length(Reduce(union, sapply(fcs.header, function(i) i$keyword)))&keywords.build == TRUE){
+    keywords.build <- c("$BTIM","$CYT","$CYTSN","$DATE","$ETIM","$FIL","$TOT","ALIQUOT.TOTAL","CONDITION","EXP","FCSversion",
+                        "FILENAME","GUID","NORM.METHOD","NORMALIZED","ORIGINALGUID","POOL","POOL.ALIQUOT","STUDY")
+
+    fcs.header <- sapply(fcs.header, function(i){
+      if(!all(keywords.build %in% i$keyword)){
+        stop("Keyword conflict...")
+      }else{
+        i <- i[i$keyword %in% keywords.build, ]
+      }
+    }, simplify = F)
+  }
+
+  if(return.combined == TRUE){
+    keywords.combined <- stats::setNames(vector(mode = "character", length = unique(sapply(fcs.header, nrow))),
+                                  nm = unlist(unique(lapply(fcs.header, function(i) i$keyword))))
+    for(k in seq(keywords.combined)){
+      keywords.combined[k] <- paste0(sapply(fcs.header, function(i) i$value[i$keyword == names(keywords.combined)[k]]), collapse = ";")
+    }
+
+    keywords.combined <- sapply(keywords.combined, function(i){
+      if(length(unique(strsplit(i, ";")[[1]]))==1){
+        i <- unique(strsplit(i, ";")[[1]])
+      }else{
+        i <- i
+      }
+    })
+    pluralize.names <- names(keywords.combined)[sapply(keywords.combined, function(i) grepl(";", i))]
+    names(keywords.combined)[names(keywords.combined) %in% pluralize.names] <- paste0(sub("\\$", "", pluralize.names), "S")
+    keywords.combined
+  }else{
+    fcs.header
+  }
+}
+
+debarcode_batched <- function(coded.fcs.file.path, use.batched.sheets = TRUE, metadata.sheet.path = NULL, use.barcode.cut = TRUE){
+
+  keyword.headers <- fcs.headers.no.pars(fcs.file.paths = coded.fcs.file.path, return.combined = T)
+
+  if(!any(names(keyword.headers) %in% "EXP")){
+    stop("need/expect 'EXP' keyword")
+  }else if(!any(names(keyword.headers) %in% "STUDY")){
+    stop("need/expect 'STUDY' keyword")
+  }else if(!any(names(keyword.headers) %in% "POOL")){
+    stop("need/expect 'POOL' keyword")
+  }else if(!any(names(keyword.headers) %in% "CONDITION")){
+    stop("need/expect 'CONDITION' keyword")
+  }else if(!any(names(keyword.headers) %in% "POOL.ALIQUOT")){
+    stop("need/expect 'POOL.ALIQUOT' keyword")
+  }
+
+  if(use.batched.sheets == TRUE){
+
+    batched_merged.file.path <- grep(paste0(keyword.headers[c("STUDY", "EXP")], collapse = "_"),
+                                     list.files("../metadata/004_batched_merged/", full.names = T, pattern = ".xlsx"), value = T)
+    mdat <- readxl::read_xlsx(batched_merged.file.path)
+    #NA fix for some of the earlier sheets...
+    mdat$barcode.SEB_UNSTIM <- sub(",NA", "", mdat$barcode.SEB_UNSTIM)
+    mdat$barcode.seb <- sapply(strsplit(mdat$barcode.SEB_UNSTIM, ","), '[', 1)
+    mdat$barcode.unstim <- sapply(strsplit(mdat$barcode.SEB_UNSTIM, ","), '[', 2)
+    mdat$name.seb <- paste("ECHO",unique(mdat$pool.date),"SEB",mdat$barcode.seb, sep = "_")
+    mdat$name.unstim <- paste("ECHO",unique(mdat$pool.date),"UNSTIM",mdat$barcode.unstim, sep = "_")
+
+    if(!all(c("GID.1", "Visit", "Participant.Id", "Sequence.Num") %in% colnames(mdat))){
+      stop("Check mdat sheet; need 'GID', 'Visit', 'Participant.Id', 'Sequence.Num'...")
+    }
+
+    if(keyword.headers["POOL"] != unique(mdat$pool.date)){
+      stop("Pool date mismatch...")
+    }
+
+    if(keyword.headers["CONDITION"] == "SEB"){
+      named.barcodes <- stats::setNames(sapply(mdat$barcode.SEB_UNSTIM, function(i) as.numeric(strsplit(i, ",")[[1]][1]), USE.NAMES = F),
+                                        nm = mdat$participant_sequence)
+    }else if(keyword.headers["CONDITION"] == "UNSTIM"){
+      named.barcodes <- stats::setNames(sapply(mdat$barcode.SEB_UNSTIM, function(i) as.numeric(strsplit(i, ",")[[1]][2]), USE.NAMES = F),
+                                        nm = mdat$participant_sequence)
+    }
+    named.barcodes <- named.barcodes[!is.na(named.barcodes)]
+    names(named.barcodes)[grep("HD", names(named.barcodes))] <- paste(grep("HD", names(named.barcodes), value = T),
+                                                                      unique(mdat$pool.date),
+                                                                      sep = "_")
+
+  }else if(use.batched.sheets == FALSE & !is.null(metadata.sheet.path)){
+    mdat <- readxl::read_excel(metadata.sheet.path, sheet = grep("manifest_batched", readxl::excel_sheets(metadata.sheet.path)))
+    mdat <- mdat[which(mdat$batch.number == as.numeric(keyword.headers["EXP"])), ]
+    if(nrow(mdat) == 0){
+      stop("No batch found in metadata sheet...")
+    }
+  }else{
+    stop("Need metadata sheet for assigning subject/global ids...")
+  }
+
+  dir.mod <- sub("03_coded", "04_debarcoded", unique(dirname(coded.fcs.file.path)))
+
+  invisible(
+    sapply(dir.mod, function(i){
+      if(!dir.exists(i)){
+        dir.create(i, recursive = T)
+      }
+    })
+  )
+  ##
+  message(paste("Debarcoding:", coded.fcs.file.path, sep = " "))
+  fcs <- flowCore::read.FCS(coded.fcs.file.path, transformation = F, truncate_max_range = F)
+
+  if(use.barcode.cut == TRUE){
+    barcode.vec <- "barcode_cut"
+  }else{
+    barcode.vec <- "barcode"
+  }
+
+  sapply(sort(unique(fcs@exprs[, barcode.vec])), function(i){
+
+    fcs.tmp <- fcs[fcs@exprs[, barcode.vec] == i, ]
+
+    fcs.tmp@description$BARCODE <- i
+
+    if(fcs.tmp@description$BARCODE == 0){
+
+      fcs.merge.name <- paste(fcs.tmp@description$STUDY,
+                              fcs.tmp@description$POOL,
+                              fcs.tmp@description$CONDITION,
+                              "UNASSIGNED",
+                              fcs.tmp@description$POOL.ALIQUOT,
+                              sep = "_")
+
+      fcs.tmp@description$`$FIL` <- paste0(fcs.merge.name,".fcs")
+
+      fcs.tmp@description$`Participant Id` <- "UNASSIGNED"
+      fcs.tmp@description$`GLOBAL ID` <- "UNASSIGNED"
+      fcs.tmp@description$Visit <- "UNASSIGNED"
+      fcs.tmp@description$`Sequence Num` <- "UNASSIGNED"
+      fcs.tmp@description$date.thawed <- unique(mdat$date.thawed)
+
+      flowCore::write.FCS(fcs.tmp, filename = file.path(dir.mod, fcs.tmp@description$`$FIL`))
+
+    }else if(fcs.tmp@description$CONDITION == "UNSTIM"&!fcs.tmp@description$BARCODE %in% as.numeric(mdat$barcode.unstim[!is.na(mdat$barcode.unstim)])){
+      message(paste("Issue with barcode:", i, sep = " "))
+      message("erroneous 'UNSTIM' barcode/name; assigning these events to 'mismatch' file")
+      fcs.merge.name <- paste(fcs.tmp@description$STUDY,
+                              fcs.tmp@description$POOL,
+                              fcs.tmp@description$CONDITION,
+                              paste("MISMATCH", fcs.tmp@description$BARCODE, sep = "_"),
+                              fcs.tmp@description$POOL.ALIQUOT,
+                              sep = "_")
+
+      fcs.tmp@description$`$FIL` <- paste0(fcs.merge.name,".fcs")
+
+      fcs.tmp@description$`Participant Id` <- "MISMATCH"
+      fcs.tmp@description$`GLOBAL ID` <- "MISMATCH"
+      fcs.tmp@description$Visit <- "MISMATCH"
+      fcs.tmp@description$`Sequence Num` <- "MISMATCH"
+      fcs.tmp@description$date.thawed <- unique(mdat$date.thawed)
+
+      flowCore::write.FCS(fcs.tmp, filename = file.path(dir.mod, fcs.tmp@description$`$FIL`))
+
+    }else if(fcs.tmp@description$CONDITION == "SEB"&!fcs.tmp@description$BARCODE %in% as.numeric(mdat$barcode.seb[!is.na(mdat$barcode.seb)])){
+      message(paste("Issue with barcode:", i, sep = " "))
+      message("erroneous 'SEB' barcode/name; assigning these events to 'mismatch' file")
+      fcs.merge.name <- paste(fcs.tmp@description$STUDY,
+                              fcs.tmp@description$POOL,
+                              fcs.tmp@description$CONDITION,
+                              paste("MISMATCH", fcs.tmp@description$BARCODE, sep = "_"),
+                              fcs.tmp@description$POOL.ALIQUOT,
+                              sep = "_")
+
+      fcs.tmp@description$`$FIL` <- paste0(fcs.merge.name,".fcs")
+
+      fcs.tmp@description$`Participant Id` <- "MISMATCH"
+      fcs.tmp@description$`GLOBAL ID` <- "MISMATCH"
+      fcs.tmp@description$Visit <- "MISMATCH"
+      fcs.tmp@description$`Sequence Num` <- "MISMATCH"
+      fcs.tmp@description$date.thawed <- unique(mdat$date.thawed)
+
+      flowCore::write.FCS(fcs.tmp, filename = file.path(dir.mod, fcs.tmp@description$`$FIL`))
+
+    }else{
+      fcs.merge.name <- paste(fcs.tmp@description$STUDY,
+                              fcs.tmp@description$POOL,
+                              fcs.tmp@description$CONDITION,
+                              fcs.tmp@description$BARCODE,
+                              sep = "_")
+
+      if(fcs.tmp@description$CONDITION == "UNSTIM"){
+        mdat.tmp <- mdat[which(mdat$name.unstim %in% fcs.merge.name), ]
+        mdat.tmp <- mdat.tmp[, grep("seb", colnames(mdat.tmp), invert = T)]
+      }else if(fcs.tmp@description$CONDITION == "SEB"){
+        mdat.tmp <- mdat[which(mdat$name.seb %in% fcs.merge.name), ]
+        mdat.tmp <- mdat.tmp[, grep("unstim", colnames(mdat.tmp), invert = T)]
+      }
+
+      for(j in seq(ncol(mdat.tmp))){
+        fcs.tmp@description[colnames(mdat.tmp)[j]] <- mdat.tmp[[j]]
+      }
+
+      fcs.tmp@description$`GLOBAL ID` <- mdat.tmp$GID.1
+
+      if(fcs.tmp@description$Visit == "Adult"){
+        fcs.tmp@description$`$FIL` <- paste0(paste(fcs.tmp@description[[grep("participant.*id", colnames(mdat.tmp), value = T, ignore.case = T)]],
+                                                   fcs.tmp@description[[grep("Visit", colnames(mdat.tmp), value = T, ignore.case = T)]],
+                                                   fcs.tmp@description$CONDITION,
+                                                   fcs.tmp@description$EXP,
+                                                   fcs.tmp@description$POOL.ALIQUOT,
+                                                   sep = "_"),
+                                             ".fcs")
+      }else{
+        fcs.tmp@description$`$FIL` <- paste0(paste(fcs.tmp@description[[grep("participant.*id", colnames(mdat.tmp), value = T, ignore.case = T)]],
+                                                   paste0("V", fcs.tmp@description[[grep("sequence.*num", colnames(mdat.tmp), value = T, ignore.case = T)]]),
+                                                   fcs.tmp@description$CONDITION,
+                                                   fcs.tmp@description$POOL.ALIQUOT,
+                                                   sep = "_"),
+                                             ".fcs")
+      }
+
+      flowCore::write.FCS(fcs.tmp, filename = file.path(dir.mod, fcs.tmp@description$`$FIL`))
+    }
+  })
+}
