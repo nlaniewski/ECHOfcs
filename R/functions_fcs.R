@@ -48,7 +48,11 @@ fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL,suppress.check=F
   pn.selected <- p$N[which(p$N %in% selected.markers)]
 
   common.split.counts <- sapply(c(".","_","-"," "),function(split) sum(grepl(split,p$S,fixed = T)))
-  most.likely.split <- names(common.split.counts)[which.max(common.split.counts)]
+  if(max(common.split.counts)!=length(p$S)){
+    most.likely.split <- ""
+  }else{
+    most.likely.split <- names(common.split.counts)[which.max(common.split.counts)]
+  }
 
   if(!is.null(selected.markers)){
     ps.selected <- names(grep(paste0(most.likely.split,paste0(selected.markers,"$"),collapse = "|"),p$S,value = T))
