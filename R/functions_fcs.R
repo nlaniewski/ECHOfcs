@@ -161,7 +161,11 @@ read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter
       fcs@exprs <- fcs@exprs[-Reduce(union,scatter.trim.list),]
     }
     if(comp&is.null(comp.mat)){
-      fcs <- flowCore::compensate(fcs,fcs@description$SPILL)
+      if(!is.null(fcs@description$SPILL)){
+        fcs <- flowCore::compensate(fcs,fcs@description$SPILL)
+      }else if(!is.null(fcs@description$`$SPILLOVER`)){
+        fcs <- flowCore::compensate(fcs,fcs@description$`$SPILLOVER`)
+      }
     }else if(comp&!is.null(comp.mat)){
       fcs <- flowCore::compensate(fcs,comp.mat)
     }
