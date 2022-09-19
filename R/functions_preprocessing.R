@@ -198,7 +198,7 @@ concatenate.fcs <- function(debarcoded.fcs.file.paths){
       input.cytofset <- sapply(input.cytofset, function(i) i <- i[,shared.colnames])
 
       if(length(input.cytofset) <= 2){
-        input.cytofset <- do.call(rbind2, input.cytofset)
+        input.cytofset <- do.call(flowCore::rbind2, input.cytofset)
       }
     }else{
       input.cytofset <- flowCore::read.flowSet(fcs.paths.tmp, transformation = F, truncate_max_range = F)
@@ -280,7 +280,7 @@ concatenate.fcs <- function(debarcoded.fcs.file.paths){
     }
 
     message("Building concatenate...")
-    fcs.concatenated <- flowCore::fsApply(input.cytofset, exprs)#concatenated expression matrix
+    fcs.concatenated <- flowCore::fsApply(input.cytofset, flowCore::exprs)#concatenated expression matrix
 
     fcs.df <- data.frame(name = dimnames(fcs.concatenated)[[2]],
                          desc = tmp.dat$desc)
@@ -293,16 +293,16 @@ concatenate.fcs <- function(debarcoded.fcs.file.paths){
       rownames(df.anno) <- gsub("N", "", rownames(df.anno))
     }#need to sub out N or flowCore:::cols_to_pd will fail @ 'new_pid <- max(as.integer(gsub("\\$P", "", rownames(pd)))) + 1'
 
-    fcs.concatenated <- new("flowFrame",
-                            exprs = fcs.concatenated,
-                            parameters = df.anno,
-                            description = as.list(keyword.headers)
+    fcs.concatenated <- methods::new("flowFrame",
+                                     exprs = fcs.concatenated,
+                                     parameters = df.anno,
+                                     description = as.list(keyword.headers)
     )
 
     fcs.concatenated@description$POOL.ALIQUOT <- "CONCATENATED"
 
     aliquot.col <-  matrix(rep(seq(length(input.cytofset)),
-                               fsApply(input.cytofset, nrow)),
+                               flowCore::fsApply(input.cytofset, nrow)),
                            ncol = 1,
                            dimnames = list(NULL, c("aliquot_fcs")))
 

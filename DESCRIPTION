@@ -19,6 +19,7 @@ Imports:
     graphics,
     grDevices,
     gridExtra,
+    methods,
     nnls,
     readxl,
     parallel,
