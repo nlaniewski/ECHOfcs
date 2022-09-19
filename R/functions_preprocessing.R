@@ -131,3 +131,210 @@ combine.trim.plots <- function(echo.exp.number){
 
   pdftools::pdf_combine(trim.plots, output = out.file)
 }
+
+concatenate.fcs <- function(debarcoded.fcs.file.paths){
+  debarcoded.fcs.file.paths <- grep("MISMATCH", debarcoded.fcs.file.paths, invert = T, value = T)#drop 'MISMATCH' files
+  assigned.names <- stats::setNames(nm = basename(debarcoded.fcs.file.paths))
+  name.split <- sapply(sub(".fcs", "", assigned.names), function(i) strsplit(i, "_"))
+  pid.visit.condition <- unique(sapply(names(name.split), function(i){
+    if(grepl("UNASSIGNED|Adult", i)){
+      #"UNASSIGNED"
+      paste(name.split[[i]][1],
+            name.split[[i]][2],
+            name.split[[i]][3],
+            name.split[[i]][4],
+            sep = "_")
+    }else{
+      paste(name.split[[i]][1],
+            name.split[[i]][2],
+            name.split[[i]][3],
+            sep = "_")
+    }
+  })
+  )
+
+  dir.mod <- sub("04_debarcoded", "05_concatenated", unique(dirname(debarcoded.fcs.file.paths)))
+
+  invisible(
+    sapply(dir.mod, function(i){
+      if(!dir.exists(i)){
+        dir.create(i, recursive = T)
+      }
+    })
+  )
+
+  invisible(sapply(pid.visit.condition, function(i){
+
+    fcs.paths.tmp <- grep(i, debarcoded.fcs.file.paths, value = T)
+
+    keyword.headers <- fcs.headers.no.pars(fcs.paths.tmp, keywords.build = FALSE)
+
+    par.num <- sapply(fcs.paths.tmp, function(i) flowCore::read.FCSheader(i, keyword = "$PAR")[[1]])
+
+    if(length(unique(par.num))>1 & max(as.numeric(par.num)) - min(as.numeric(par.num)) == 1){
+      message("Found 1 single parameter difference between one frame and the others...")
+      affected.frame <- names(which(sapply(fcs.paths.tmp, FUN = flowCore::read.FCSheader, keyword = "$PAR", USE.NAMES = F) == names(table(par.num))[min(table(par.num))]))
+      unaffected.frames <- names(which(sapply(fcs.paths.tmp, FUN = flowCore::read.FCSheader, keyword = "$PAR", USE.NAMES = F) == max(names(table(par.num)))))
+      message(paste("Parameter issue with:", affected.frame, sep = " "))
+
+      affected.PS <- flowCore::read.FCSheader(affected.frame, keyword = grep("\\$P.*S", names(flowCore::read.FCSheader(affected.frame)[[1]]), value = T))
+      unaffected.PS <-flowCore::read.FCSheader(unaffected.frames[1], keyword = grep("\\$P.*S", names(flowCore::read.FCSheader(unaffected.frames[1])[[1]]), value = T))
+
+      extra.par.index <- which(!unlist(unaffected.PS, use.names = F) %in% unlist(affected.PS, use.names = F))
+      extra.par <- unlist(unaffected.PS, use.names = F)[extra.par.index]
+      message(paste("Extra parameter in the other frames:", extra.par, sep = " "))
+
+      col.pattern <- as.character(flowCore::read.FCSheader(unaffected.frames[1], keyword = sub("S", "N", names(unaffected.PS[[1]])[extra.par.index]))[[1]])
+      message(paste("Reading in as a flowset but dropping the following:", col.pattern, sep = " "))
+      input.cytofset <- flowCore::read.flowSet(fcs.paths.tmp, transformation = F, truncate_max_range = F, column.pattern = col.pattern, invert.pattern = T)
+    }else if(length(unique(par.num))>1){
+      message("Parameter number mismatch; reading in as multiple flowsets")
+      input.cytofset <- vector(mode = "list", length = length(unique(par.num)))
+      for(j in seq(input.cytofset)){
+        input.cytofset[[j]] <- flowCore::read.flowSet(fcs.paths.tmp[par.num == unique(par.num)[[j]]], transformation = F, truncate_max_range = F)
+      }
+      message(paste("Dropping the following columns:",paste0(Reduce(setdiff, sapply(input.cytofset, colnames)),collapse = ","),sep = " "))
+      shared.colnames <- Reduce(intersect, sapply(input.cytofset, flowCore::colnames))
+      input.cytofset <- sapply(input.cytofset, function(i) i <- i[,shared.colnames])
+
+      if(length(input.cytofset) <= 2){
+        input.cytofset <- do.call(rbind2, input.cytofset)
+      }
+    }else{
+      input.cytofset <- flowCore::read.flowSet(fcs.paths.tmp, transformation = F, truncate_max_range = F)
+      #shared.colnames <- Reduce(intersect, fsApply(input.cytofset, colnames, simplify = F))
+      #input.cytofset <- fsApply(input.cytofset, function(f) f <- f[,shared.colnames])
+    }
+
+    if(suppressWarnings(is.list(flowCore::markernames(input.cytofset)))){
+      message("Name-fixing parameters")
+      input.cytofset <- flowCore::fsApply(input.cytofset, function(f){
+        beads.index <- grep("beads", f@parameters@data$desc, ignore.case = T)
+        f@parameters@data$desc[beads.index] <- sub("_.*","_Norm_beads",f@parameters@data$desc[beads.index])
+        #
+        f@parameters@data$desc <- sub("viablitiy", "Viability", f@parameters@data$desc)#name fix
+        f@parameters@data$desc <- sub("viability", "Viability", f@parameters@data$desc)#name fix
+        viability.index <- grep("viability", f@parameters@data$desc, ignore.case = T)
+        if(grepl("Pt",f@parameters@data$desc[viability.index])){
+          f@parameters@data$desc[viability.index] <- sub("_.*","_viability_cisplatin",f@parameters@data$desc[viability.index])
+        }#name fix
+        #
+        f@parameters@data$desc <- sub("CD49a", "CD49d", f@parameters@data$desc)#name fix
+        f@parameters@data$desc <- sub("TGFb1", "TGFbeta1", f@parameters@data$desc)#name fix
+        f@parameters@data$desc <- sub("background", "Background", f@parameters@data$desc)#name fix
+        f@parameters@data$desc <- sub("176Yb$", "176Yb_CD127", f@parameters@data$desc)#name fix
+        f@parameters@data$desc <- sub("209Bi$", "209Bi_CD57", f@parameters@data$desc)#name fix
+        f@parameters@data$desc[grep("190BCKG",f@parameters@data$desc)] <- "190BCKG_Noise"#name fix
+
+        desc.na.index <- !f@parameters@data$name %in% c("Time", "Event_length", "node_CD45", "barcode", "barcode_cut") & is.na(f@parameters@data$desc)
+        f@parameters@data$desc[desc.na.index] <- f@parameters@data$name[desc.na.index]
+        f@parameters@data$desc <- sub("Di", "", f@parameters@data$desc)#name fix
+
+        marker.index <- grepl("_", f@parameters@data$desc)
+        marker.metal <- sapply(strsplit(f@parameters@data$desc[marker.index], "_"), '[', 1)
+        marker.metal <- paste0(gsub("[A-Za-z]", "",marker.metal),
+                               gsub("[0-9]", "", marker.metal))
+        marker.marker <- sapply(strsplit(f@parameters@data$desc[marker.index], "_"), '[', 2)
+        f@parameters@data$desc[marker.index] <- paste(marker.metal, marker.marker, sep = "_")
+
+        metal.index <- !grepl("_", f@parameters@data$desc) & !is.na(f@parameters@data$desc)
+        f@parameters@data$desc[metal.index] <- paste0(gsub("[A-Za-z]", "", f@parameters@data$desc[metal.index]),
+                                                      gsub("[0-9]", "", f@parameters@data$desc[metal.index]))
+
+        f
+      })
+    }
+
+    tmp.dat <- flowCore::fsApply(input.cytofset, function(f){
+      dat <- f@parameters@data[,c("name", "desc")]
+      rownames(dat) <- NULL
+      dat
+    })
+
+    if(all(sapply(sapply(tmp.dat, function(i) unname(i$name), simplify = F), FUN = identical, unname(tmp.dat[[length(tmp.dat)]]$name))) &
+       all(sapply(sapply(tmp.dat, function(i) unname(i$desc), simplify = F), FUN = identical, unname(tmp.dat[[length(tmp.dat)]]$desc)))){
+      tmp.dat <- tmp.dat[[1]]
+    }else if(!all(sapply(tmp.dat, FUN = identical, tmp.dat[[length(tmp.dat)]]))){
+      message(paste("Name or desc issue with:", names(which(!sapply(tmp.dat, FUN = identical, tmp.dat[[length(tmp.dat)]])))))
+      affected.markernames <- flowCore::markernames(input.cytofset[[which(!sapply(tmp.dat, FUN = identical, tmp.dat[[length(tmp.dat)]]))]])
+      unaffected.markernames <- flowCore::markernames(input.cytofset[which(sapply(tmp.dat, FUN = identical, tmp.dat[[length(tmp.dat)]]))])
+      fix.these <- which(affected.markernames != unaffected.markernames)
+      message(paste("These need fixing:", paste0(names(fix.these), collapse = ","), sep = " "))
+      message(paste("The other frames have markernames:", paste0(unaffected.markernames[fix.these], collapse = ","), sep = " "))
+      message("Dropping affected markernames; using correctly named markers in the concatenate...")
+      tmp.dat <- tmp.dat[-which(!sapply(tmp.dat, FUN = identical, tmp.dat[[length(tmp.dat)]]))]
+      message("Retesting for unified names/markers")
+      if(!all(sapply(tmp.dat, FUN = identical, tmp.dat[[length(tmp.dat)]]))){
+        stop("Either name or desc is not unified...")
+      }else{
+        tmp.dat <- tmp.dat[[1]]
+      }
+    }else{
+      tmp.dat <- tmp.dat[[1]]
+    }
+
+    fcs.file.path <- file.path(sub("04_debarcoded", "05_concatenated", unique(dirname(fcs.paths.tmp))))
+
+    if(!all(sapply(seq(length(input.cytofset)), function(i) length(input.cytofset[[i]]@description)))){
+      "Missing keywords...?"
+    }
+
+    message("Building concatenate...")
+    fcs.concatenated <- flowCore::fsApply(input.cytofset, exprs)#concatenated expression matrix
+
+    fcs.df <- data.frame(name = dimnames(fcs.concatenated)[[2]],
+                         desc = tmp.dat$desc)
+    fcs.df$range <- apply(apply(fcs.concatenated,2,range),2,diff)
+    fcs.df$minRange <- apply(fcs.concatenated,2,min)
+    fcs.df$maxRange <- apply(fcs.concatenated,2,max)
+
+    df.anno <- Biobase::AnnotatedDataFrame(fcs.df)
+    if(any(grepl("N", rownames(df.anno)))){
+      rownames(df.anno) <- gsub("N", "", rownames(df.anno))
+    }#need to sub out N or flowCore:::cols_to_pd will fail @ 'new_pid <- max(as.integer(gsub("\\$P", "", rownames(pd)))) + 1'
+
+    fcs.concatenated <- new("flowFrame",
+                            exprs = fcs.concatenated,
+                            parameters = df.anno,
+                            description = as.list(keyword.headers)
+    )
+
+    fcs.concatenated@description$POOL.ALIQUOT <- "CONCATENATED"
+
+    aliquot.col <-  matrix(rep(seq(length(input.cytofset)),
+                               fsApply(input.cytofset, nrow)),
+                           ncol = 1,
+                           dimnames = list(NULL, c("aliquot_fcs")))
+
+    fcs.concatenated <- flowCore::fr_append_cols(fcs.concatenated,aliquot.col)
+
+    if(fcs.concatenated@description$`GLOBAL ID` == "UNASSIGNED"){
+      fcs.concatenated@description$`$FIL` <- paste0(paste(fcs.concatenated@description$STUDY,
+                                                          fcs.concatenated@description$POOL,
+                                                          fcs.concatenated@description$CONDITION,
+                                                          "UNASSIGNED",
+                                                          "CONCATENATED",
+                                                          sep = "_"),
+                                                    ".fcs")
+    }else if(fcs.concatenated@description$Visit == "Adult"){
+      fcs.concatenated@description$`$FIL` <- paste0(paste(fcs.concatenated@description$Participant.Id,
+                                                          fcs.concatenated@description$Visit,
+                                                          fcs.concatenated@description$CONDITION,
+                                                          fcs.concatenated@description$EXP,
+                                                          "CONCATENATED",
+                                                          sep = "_"),
+                                                    ".fcs")
+    }else{
+      fcs.concatenated@description$`$FIL` <- paste0(paste(fcs.concatenated@description$Participant.Id,
+                                                          paste0("V", fcs.concatenated@description$Sequence.Num),
+                                                          fcs.concatenated@description$CONDITION,
+                                                          "CONCATENATED",
+                                                          sep = "_"),
+                                                    ".fcs")
+    }
+
+    message(paste("Writing .fcs:", fcs.concatenated@description$`$FIL`, sep = " "))
+    flowCore::write.FCS(fcs.concatenated, filename = file.path(fcs.file.path, fcs.concatenated@description$`$FIL`))
+
+  }))
+}

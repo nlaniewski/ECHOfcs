@@ -628,67 +628,6 @@ fsom_coded_to_fcs_coded <- function(fsom_coded.file.path){
   }))
 }
 
-fcs.headers.no.pars <- function(fcs.file.paths, keywords.build = TRUE, return.combined = TRUE){
-  fcs.header <- sapply(fcs.file.paths, function(i){
-    i <- as.data.frame(flowCore::read.FCSheader(i))
-    i <- data.frame(keyword = rownames(i),
-                    value = i[,1])
-    i <- i[-grep("\\$P[0-9]{1}", i$keyword), ]
-    i <- i[-grep("\\$BEGIN", i$keyword), ]
-    i <- i[-grep("\\$BYTEORD", i$keyword), ]
-    i <- i[-grep("\\$DATATYPE", i$keyword), ]
-    i <- i[-grep("\\$END", i$keyword), ]
-    i <- i[-grep("\\$MODE", i$keyword), ]
-    i <- i[-grep("\\$NEXTDATA", i$keyword), ]
-    i <- i[-grep("\\$PAR", i$keyword), ]
-
-    helios.keywords <- c("FluidigmBarcoded",
-                         "FluidigmMassTagsChecked",
-                         "FluidigmNormalized",
-                         "TargetGemStoneMethod")
-
-    if(any(helios.keywords %in% i$keyword)){
-      i <- i[-grep(paste0(helios.keywords, collapse = "|"), i$keyword), ]
-    }
-
-    i
-  }, USE.NAMES = T, simplify = F)
-
-  if(unique(sapply(fcs.header, nrow)) == length(Reduce(union, sapply(fcs.header, function(i) i$keyword)))&keywords.build == TRUE){
-    keywords.build <- c("$BTIM","$CYT","$CYTSN","$DATE","$ETIM","$FIL","$TOT","ALIQUOT.TOTAL","CONDITION","EXP","FCSversion",
-                        "FILENAME","GUID","NORM.METHOD","NORMALIZED","ORIGINALGUID","POOL","POOL.ALIQUOT","STUDY")
-
-    fcs.header <- sapply(fcs.header, function(i){
-      if(!all(keywords.build %in% i$keyword)){
-        stop("Keyword conflict...")
-      }else{
-        i <- i[i$keyword %in% keywords.build, ]
-      }
-    }, simplify = F)
-  }
-
-  if(return.combined == TRUE){
-    keywords.combined <- stats::setNames(vector(mode = "character", length = unique(sapply(fcs.header, nrow))),
-                                  nm = unlist(unique(lapply(fcs.header, function(i) i$keyword))))
-    for(k in seq(keywords.combined)){
-      keywords.combined[k] <- paste0(sapply(fcs.header, function(i) i$value[i$keyword == names(keywords.combined)[k]]), collapse = ";")
-    }
-
-    keywords.combined <- sapply(keywords.combined, function(i){
-      if(length(unique(strsplit(i, ";")[[1]]))==1){
-        i <- unique(strsplit(i, ";")[[1]])
-      }else{
-        i <- i
-      }
-    })
-    pluralize.names <- names(keywords.combined)[sapply(keywords.combined, function(i) grepl(";", i))]
-    names(keywords.combined)[names(keywords.combined) %in% pluralize.names] <- paste0(sub("\\$", "", pluralize.names), "S")
-    keywords.combined
-  }else{
-    fcs.header
-  }
-}
-
 debarcode_batched <- function(coded.fcs.file.path, use.batched.sheets = TRUE, metadata.sheet.path = NULL, use.barcode.cut = TRUE){
 
   keyword.headers <- fcs.headers.no.pars(fcs.file.paths = coded.fcs.file.path, return.combined = T)
