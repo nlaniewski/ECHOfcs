@@ -43,7 +43,7 @@ fcs.markers.agnostic <- function(fcs.path,selected.markers=NULL,suppress.check=F
   p <- sapply(c("N","S"),function(i){
     p <- header[grep(paste0("P[0-9]+",i),names(header),value = T)]
     p <- p[order(as.numeric(stringr::str_extract(names(p),"[0-9]+")))]
-  })
+  },simplify = F)
 
   pn.selected <- p$N[which(p$N %in% selected.markers)]
 
