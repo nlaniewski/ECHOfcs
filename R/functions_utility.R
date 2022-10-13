@@ -265,3 +265,12 @@ fcs.headers.no.pars <- function(fcs.file.paths, keywords.build = TRUE, return.co
     fcs.header
   }
 }
+
+iso.metal.marker.fix <- function(marker.vec,name.split="_"){
+  m.split <- strsplit(marker.vec,name.split);m.split1 <- sapply(m.split,'[[',1);m.split2 <- sapply(m.split,'[[',2)
+  metal <- stringr::str_extract(m.split1,"[A-Za-z]+")
+  iso <- stringr::str_extract(m.split1,"[0-9]+")
+  iso.metal.marker <- paste(paste0(iso,metal),m.split2,sep = "_")
+  iso.metal.marker <- factor(iso.metal.marker)
+  return(iso.metal.marker)
+}
