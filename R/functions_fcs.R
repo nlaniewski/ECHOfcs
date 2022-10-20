@@ -206,7 +206,11 @@ read.fcs.selected.markers.parallel <- function(fcs.paths,list.check=T,...){
     fcs.markers.agnostic.check(fcs.paths,selected.markers)
   }
   #
-  cl <- parallel::makeCluster(parallel::detectCores()-1)
+  n.cores <- ifelse(length(fcs.paths) < parallel::detectCores(),
+                    length(fcs.paths),
+                    parallel::detectCores()
+  )
+  cl <- parallel::makeCluster(n.cores)
   parallel::clusterExport(cl, envir = environment(), c("..."))
   fcs.list <- parallel::parSapply(cl, fcs.paths, function(i,...){
     fcs <- read.fcs.selected.markers(fcs.path=i,...)
