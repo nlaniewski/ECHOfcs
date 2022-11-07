@@ -274,3 +274,30 @@ iso.metal.marker.fix <- function(marker.vec,name.split="_"){
   iso.metal.marker <- factor(iso.metal.marker)
   return(iso.metal.marker)
 }
+
+get.range.limits <- function(fcs.filepaths,marker.only.names=F,cofactor=5,markers.vec=NULL){
+  ranges<-sapply(fcs.filepaths,function(f.path){
+    header <- flowCore::read.FCSheader(f.path)[[1]]
+    stains <- grep("_",header[grep("P[0-9]+S",names(header),value = T)],value = T)
+    ranges <- stats::setNames(as.numeric(header[sub("S","R",names(stains))]),
+                              nm=stains
+    )
+    marker.names <- sapply(strsplit(names(ranges),"_"),'[[',2)
+    if(marker.only.names){
+      names(ranges) <- marker.names
+    }
+    if(!any(grepl("TCRgd",names(ranges)))){
+      ranges <- c(ranges,'TCRgd'=0)
+    }
+    if(!any(grepl("CD69",names(ranges)))){
+      ranges <- c(ranges,'CD69'=0)
+    }
+    if(!is.null(markers.vec)){
+      ranges<-ranges[marker.names%in%markers.vec]
+    }
+    return(ranges)
+  },simplify = F)
+  ranges <- do.call(rbind,ranges)
+  range.limits <- apply(ranges,2,function(x,cf=cofactor){asinh(mean(x/cf))})
+  return(range.limits)
+}
