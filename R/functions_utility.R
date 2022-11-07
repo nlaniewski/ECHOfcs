@@ -282,15 +282,17 @@ get.range.limits <- function(fcs.filepaths,marker.only.names=F,cofactor=5,marker
     ranges <- stats::setNames(as.numeric(header[sub("S","R",names(stains))]),
                               nm=stains
     )
+    names(ranges) <- iso.metal.marker.fix(names(ranges))
+    if(!any(grepl("151Eu_CD69",names(ranges)))){
+      ranges <- c(ranges,"151Eu_CD69"=0)
+    }
+    if(!any(grepl("155Gd_TCRgd",names(ranges)))){
+      ranges <- c(ranges,"155Gd_TCRgd"=0)
+    }
+    ranges<-ranges[sort(names(ranges))]
     marker.names <- sapply(strsplit(names(ranges),"_"),'[[',2)
     if(marker.only.names){
       names(ranges) <- marker.names
-    }
-    if(!any(grepl("TCRgd",names(ranges)))){
-      ranges <- c(ranges,'TCRgd'=0)
-    }
-    if(!any(grepl("CD69",names(ranges)))){
-      ranges <- c(ranges,'CD69'=0)
     }
     if(!is.null(markers.vec)){
       ranges<-ranges[marker.names%in%markers.vec]
