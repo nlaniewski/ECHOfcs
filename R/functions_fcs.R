@@ -357,3 +357,53 @@ trim.time.value <- function(time.vec,plot=F){
     return(time.break)
   }
 }
+
+##return a value to use for filtering out 'non-normal' time events
+time.break<-function(time.vector,sd.adjust=2,plot=F){
+  time.diff <- (max(time.vector)-min(time.vector))/60
+  b<-seq(min(time.vector),max(time.vector),length.out=ceiling(time.diff)+1)
+  h <- graphics::hist(time.vector, breaks = b, plot = F)
+  ##
+  m<-median(h$counts)
+  s<-sd(h$counts)
+  counts.high<-which(h$counts>m+s)
+  counts.low<-which(h$counts<m-s)
+  counts.low<-counts.low[counts.low%in%seq(ceiling(length(h$counts)*.5),length(h$counts))]#ignore first 50% of bins;unless there was massive clumping, time disturbances come at the end due to air bubbles
+  m.norm<-mean(h$counts[!seq(length(h$counts))%in%c(counts.high,counts.low)])
+  m.low<-mean(h$counts[counts.low])
+  ##
+  if(length(counts.low)>20&1-(m.low/m.norm)>.20){
+    #message("Non-normal time bins (counts);setting time break")
+    n<-length(counts.low)
+    d<-diff(counts.low)
+    if(any(rle(d)$l>5)){#sequential bins of low counts;detects declining event rate
+      i<-which(d<=3)[1]+1
+      time.break<-h$breaks[counts.low[i]]
+    }else{
+      time.break<-max(h$breaks)
+    }
+  }else{
+    #message("Normal time bins (counts);setting max time break")
+    time.break<-max(h$breaks)
+  }
+  ##
+  if(plot){
+    plot(h)
+    abline(h=m,lwd=2)
+    abline(h=m+s,col="blue",lwd=2)
+    abline(h=m-s,col="blue",lwd=2)
+    abline(v=time.break,col='red',lwd=2)
+  }else{
+    return(time.break)
+  }
+}
+
+##trim extreme scatter events
+trim.scatter<-function(fcs){
+  scatter.trim.list <- sapply(paste(rep(c("FSC", "SSC"),
+                                        each = 3), c("A", "H", "W"), sep = "-"), function(scatter) {
+                                          which(fcs@exprs[,scatter]<10000|fcs@exprs[,scatter]>250000)
+                                        })
+  fcs@exprs <- fcs@exprs[-Reduce(union, scatter.trim.list),]
+  return(fcs)
+}

@@ -338,3 +338,24 @@ concatenate.fcs <- function(debarcoded.fcs.file.paths){
 
   }))
 }
+
+##asinh transform compensated .fcs expression data;default cofactor of 1 (divide by 2 to scale to fluor) for scatter; default cofactor of 500 for fluors
+asinh.transform.fluor<-function(fcs,modified.fluor.cofactor=NULL,transform.scatter=F){
+  if(transform.scatter){
+    parms.scatter<-grep("SC",flowCore::colnames(fcs),value = T)
+    fcs@exprs[,parms.scatter] <- asinh(fcs@exprs[,parms.scatter]/1)/2
+  }
+  m<-flowCore::markernames(fcs)
+  parms.fluor<-names(m)
+  if(!is.null(modified.fluor.cofactor)){
+    m.mod <- names(modified.fluor.cofactor)
+    parms.fluor.mod<-parms.fluor[!parms.fluor%in%names(grep(paste0(m.mod,collapse = "|"),m,value = T))]
+    fcs@exprs[,parms.fluor.mod] <- asinh(fcs@exprs[,parms.fluor.mod]/500)
+    for(i in m.mod){
+      fcs@exprs[,names(grep(i,m,value = T))] <- asinh(fcs@exprs[,names(grep(i,m,value = T))]/modified.fluor.cofactor[[i]])
+    }
+  }else{
+    fcs@exprs[,parms.fluor] <- asinh(fcs@exprs[,parms.fluor]/500)
+  }
+  return(fcs)
+}

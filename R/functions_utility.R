@@ -303,3 +303,10 @@ get.range.limits <- function(fcs.filepaths,marker.only.names=F,cofactor=5,marker
   range.limits <- apply(ranges,2,function(x,cf=cofactor){asinh(mean(x/cf))})
   return(range.limits)
 }
+
+##for plotting compensated .fcs expression data;test cofactors
+asinh.plots <- function(compensated.data.frame=dat,asinh.cofactors.list=asinh.cofactors,plot.pair=pp){
+  ggplot2::ggplot(compensated.data.frame,ggplot2::aes(x=asinh(!!ggplot2::sym(plot.pair[1])/asinh.cofactors.list[[plot.pair[1]]]),
+                                    y=asinh(!!ggplot2::sym(plot.pair[2])/asinh.cofactors.list[[plot.pair[2]]]))) +
+    ggplot2::geom_hex(bins=100)
+}
