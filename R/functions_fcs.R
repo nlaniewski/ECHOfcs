@@ -156,7 +156,7 @@ read.fcs.selected.markers <- function(fcs.path, selected.markers,include.scatter
     }
     if(trim.scatter){
       scatter.trim.list <- sapply(paste(rep(c('FSC','SSC'),each=3),c('A','H','W'),sep = "-"),function(scatter){
-        which(fcs@exprs[,scatter]>250000)
+        which(fcs@exprs[,scatter]<10000|fcs@exprs[,scatter]>250000)
       })
       fcs@exprs <- fcs@exprs[-Reduce(union,scatter.trim.list),]
     }
